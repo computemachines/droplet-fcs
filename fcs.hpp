@@ -2,18 +2,24 @@
 #define SIMULATION
 
 #include <vector>
+#include <tuple>
+
 
 #include "CL/cl.hpp"
 
-#include "simulation.cpp"
+#include "simulation.hpp"
+
+using namespace std;
 
 // Executes a single fcs simulation with parameters
 class FCS : public Simulation{
-  bool initialized = false;
   cl::Buffer timestamps;
 public:
   void init();
-  std::pair<float*, long> run(int total, int groupsize);
+  tuple<uint*, uint, long> run(int total, int groupsize,
+			       int totalDroplets,
+			       int dropletsPerGroup,
+			       float endtime, float photonsPerIntensityPerTime);
 };
 
 #endif

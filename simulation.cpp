@@ -20,7 +20,7 @@ using namespace std;
 //   simulation.run();
 // }
 
-void Simulation::init(const string source){
+void Simulation::init(string source){
   if(initialized)
     return;
   initialized = true;
@@ -33,7 +33,7 @@ void Simulation::init(const string source){
   platform = cl::Platform::get();
   platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
 
-  printf("Devices found: %d\n", devices.size());
+  printf("Devices found: %d\n", (int)devices.size());
 
   cout << "Device Vendor ID: " << devices.front().getInfo<CL_DEVICE_VENDOR_ID>() << endl;
 

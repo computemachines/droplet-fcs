@@ -27,4 +27,4 @@ if ARGUMENTS.get('.clang_complete', '0')=='1':
     env['CXX']='cc_args.py g++'
 
 env.SharedLibrary(target="fcsmodule", source=["fcsmodule.cpp"], SHLIBPREFIX='')
-env.Program(target="fcs", source="fcs.cpp")
+env.Program(target="fcs", source=["fcs.cpp", "simulation.cpp"])

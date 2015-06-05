@@ -1,3 +1,6 @@
+#pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
+#define LOCK(a) atom_cmpxchg(a, 0, 1)
+#define UNLOCK(a) atom_xchg(a, 0)
 
 
 
@@ -211,10 +214,89 @@ float2 nextGaussVec2(mwc64x_state_t *s){
 		  sqrt(-2*log(u1))*sinpi(2*u2));
 }
 
+float3 nextUfloat3(mwc64x_state_t *s){
+  return (float3)(MWC64X_NextUint(s)/pow(2.0, 32),
+		  MWC64X_NextUint(s)/pow(2.0, 32),
+		  MWC64X_NextUint(s)/pow(2.0, 32));
+}
 
-__kernel void hello(__global float* result) {
-  int i = get_global_id(0); 
-  mwc64x_state_t rng; 
-  MWC64X_SeedStreams(&rng, 0, 1000); 
-  result[i] = nextGaussVec2(&rng).x; 
+float3 nextGfloat3(mwc64x_state_t *s){
+  return (float3)(nextGaussVec2(s), nextGaussVec2(s).x);
+}
+
+float timeStep(float3 position){
+  return 1;
+}
+
+float sigma(float timestep){
+  return 1;
+}
+
+float intensity(float3 position){
+  return 1;
+}
+
+#define PRIVATE_CAPACITY 100
+typedef struct tag_private_bufferUint {
+  uint head[PRIVATE_CAPACITY];
+  uint pos;
+  uint limit;
+} private_bufferUint;
+
+typedef struct tag_global_bufferUint {
+  __global uint *head;
+  __global uint *pos;
+  //  uint limit;
+} global_bufferUint;
+
+
+void generatePhotonsOnPrivateBuffer(float oldIntensity, float newIntensity,
+				    float timestep,
+				    float photonsPerIntensityPerTime,
+				    private_bufferUint *buffer){
+  
+}
+
+__kernel void hello(__private float endTime,
+		    __private uint dropletsPerGroup,
+		    __private float photonsPerIntensityPerTime,
+		    __global uint *globalPhotonsPos,
+		    __global uint *globalPhotons
+		    ){
+  int index = get_global_id(0);
+
+  mwc64x_state_t rng;
+  MWC64X_SeedStreams(&rng, 0, 1000000);
+
+  float3 dropletPosition = nextUfloat3(&rng) - (float3)(0.5, 0.5, 0.5);
+  float dropletTime = 0;
+  float dropletIntensity = intensity(dropletPosition);
+  
+  private_bufferUint privatePhotons;
+  privatePhotons.pos = 0;
+  privatePhotons.limit = PRIVATE_CAPACITY;
+
+  global_bufferUint photons;
+  photons.head = globalPhotons;
+  photons.pos = globalPhotons;
+  *photons.pos = 0;
+
+  float3 newPosition_temp;
+  float newIntensity_temp, timeStep_temp;
+  while(dropletTime < endTime){ 
+    timeStep_temp = timeStep(dropletPosition); 
+    dropletTime += timeStep_temp; 
+    newPosition_temp = dropletPosition + sigma(timeStep_temp)*nextGfloat3(&rng); 
+    newIntensity_temp = intensity(newPosition_temp); 
+    generatePhotonsOnPrivateBuffer(dropletIntensity, newIntensity_temp, 
+  				   timeStep_temp, 
+  				   photonsPerIntensityPerTime, 
+  				   &privatePhotons); 
+    globalPhotons[*globalPhotonsPos] = (uint)(dropletTime); 
+    *globalPhotonsPos = *globalPhotonsPos + 1;
+  } 
+  /* globalPhotons[0] = 4; */
+  /* globalPhotons[1] = 8; */
+  /* globalPhotons[3] = 12; */
+  /* *globalPhotonsPos = 4; */
 }

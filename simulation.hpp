@@ -5,8 +5,6 @@
 
 #include "CL/cl.hpp"
 
-const std::string readFile(std::string);
-
 class Simulation{
   bool initialized = false;
 protected:
@@ -16,7 +14,7 @@ protected:
   cl::CommandQueue queue;
   cl::Kernel kernel;
 public:
-  void init(const std::string source);
+  void init(std::string source);
 };
 
 
