@@ -23,13 +23,12 @@ const string readFile(const string& filename){
 }
 
 
-
 using namespace std;
 
 int main(int argc, char** argv){
   FCS fcs;
   fcs.init();
-  std::tuple<uint*, uint, long> results = fcs.run(1, 1, 1, 1, 10.0, 1.0);
+  std::tuple<uint*, uint, long> results = fcs.run(1, 1, 10.0, 1.0);
   uint *data = get<0>(results);
   
   printf("results (length: %d) {", get<1>(results));
@@ -43,13 +42,11 @@ void FCS::init(){
   Simulation::init(readFile("program.cl"));
 }
 
-#define MAXPHOTONS 1000
-tuple<uint*, uint, long> FCS::run(int total, int groupsize,
-				  int totalDroplets,
+#define MAXPHOTONS 1000000
+tuple<uint*, uint, long> FCS::run(int totalDroplets,
 				  int dropletsPerGroup,
 				  float endTime, float photonsPerIntensityPerTime){
-  assert(total%groupsize == 0);
-  assert(total*dropletsPerGroup == total);
+  assert(totalDroplets%dropletsPerGroup == 0);
 
   #ifdef DEBUG
   printf("FCS#run()\n");
@@ -63,11 +60,13 @@ tuple<uint*, uint, long> FCS::run(int total, int groupsize,
   cl::Buffer numPhotonsBuffer = cl::Buffer(context, CL_MEM_READ_WRITE|CL_MEM_COPY_HOST_PTR,
 					   sizeof(cl_uint), &numPhotons, &err);
 
-  kernel.setArg(0, endTime);
+  cl_uint endTimeNS = (cl_uint)(endTime*1e9);
+  kernel.setArg(0, endTimeNS);
   kernel.setArg(1, dropletsPerGroup);
   kernel.setArg(2, photonsPerIntensityPerTime);
   kernel.setArg(3, numPhotonsBuffer);
   kernel.setArg(4, photonsBuffer);
+  kernel.setArg(5, cl::__local(1000*sizeof(cl_uint)));
   assert(err == CL_SUCCESS);
 
   #ifdef DEBUG
@@ -76,8 +75,8 @@ tuple<uint*, uint, long> FCS::run(int total, int groupsize,
   
   // struct timespec start, stop;
   // clock_gettime(CLOCK_REALTIME, &start);
-  queue.enqueueNDRangeKernel(kernel, cl::NDRange(0), cl::NDRange(total),
-			     cl::NDRange(groupsize), NULL, &kernelEvent);
+  queue.enqueueNDRangeKernel(kernel, cl::NDRange(0), cl::NDRange(totalDroplets),
+			     cl::NDRange(dropletsPerGroup), NULL, &kernelEvent);
   kernelEvent.wait();
   // clock_gettime(CLOCK_REALTIME, &stop);
   long astart = kernelEvent.getProfilingInfo<CL_PROFILING_COMMAND_START>();

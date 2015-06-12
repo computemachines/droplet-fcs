@@ -12,14 +12,14 @@ FCS fcs;
 extern "C" {
   
   static PyObject * fcs_fcs(PyObject *self, PyObject *args){
-    int total, groupsize, totalDroplets, dropletsPerGroup;
+    int totalDroplets, dropletsPerGroup;
     float endTime, photonsPerIntensityPerTime;
     
-    PyArg_ParseTuple(args, "iiiiff", &total, &groupsize, &totalDroplets, &dropletsPerGroup,
+    PyArg_ParseTuple(args, "iiff", &totalDroplets, &dropletsPerGroup,
 		                     &endTime, &photonsPerIntensityPerTime);
 
     fcs.init();
-    tuple<uint*, uint, long> results = fcs.run(total, groupsize, totalDroplets,
+    tuple<uint*, uint, long> results = fcs.run(totalDroplets,
 					       dropletsPerGroup, endTime,
 					       photonsPerIntensityPerTime);
     uint* data = get<0>(results);

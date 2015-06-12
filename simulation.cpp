@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+#include <unistd.h>
 
 #include "CL/cl.hpp"
 #include "CL/opencl.h"
@@ -52,8 +53,11 @@ void Simulation::init(string source){
   
   string log;
   program.getBuildInfo(devices[0], CL_PROGRAM_BUILD_LOG, &log);
-  if(err != CL_SUCCESS)
+if(err != CL_SUCCESS){
     cout << log << endl;
+usleep(1000);
+}
+  
   assert(err == CL_SUCCESS);
   
   vector<cl::Kernel> kernels;
