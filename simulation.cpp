@@ -49,7 +49,7 @@ void Simulation::init(string source){
   program = cl::Program(context, sources, &err);
   assert(err == CL_SUCCESS);
 
-  err = program.build(devices);
+  err = program.build(devices, "-DSINGLE");
   
   string log;
   program.getBuildInfo(devices[0], CL_PROGRAM_BUILD_LOG, &log);
