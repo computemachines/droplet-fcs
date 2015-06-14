@@ -28,7 +28,7 @@ using namespace std;
 int main(int argc, char** argv){
   FCS fcs;
   fcs.init();
-  std::tuple<uint*, uint, long> results = fcs.run(1, 1, 10.0, 1.0);
+  std::tuple<uint*, uint, long> results = fcs.run(1, 1, 1.0, 1e-8);
   uint *data = get<0>(results);
   
   printf("results (length: %d) {", get<1>(results));

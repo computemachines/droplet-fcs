@@ -306,7 +306,7 @@ __kernel void hello(__private uint endTime,
     t_i += dt_i;
     r_i += sigma(dt_i)*nextGfloat3(&rng);
     // TODO: modulus r_i to keep it in box
-    I_i = intensity(r_i) * (float)(t_i) * 1e-9;
+    I_i = intensity(r_i);// * (float)(t_i) * 1e-9;
     F_i += dF_i;
   }
   //    atomic_inc(globalPhotonsPos);
