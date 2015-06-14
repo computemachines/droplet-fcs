@@ -291,13 +291,13 @@ __kernel void hello(__private uint endTime,
       float U = nextUfloat(&rng);
       F_photon_n -= log(U)/photonsPerIntensityPerTime;
       #ifndef SINGLE
-      /* while(LOCK(mutex)); */
+      while(LOCK(mutex)); 
       #endif
       globalPhotonsBuffer[*globalPhotonsPos] = (F_photon_n - F_i)*dt_i/dF_i + t_i;
       atomic_inc(globalPhotonsPos);
       //      *globalPhotonsPos = *globalPhotonsPos + 1;
       #ifndef SINGLE
-      /* UNLOCK(mutex); */
+      UNLOCK(mutex); 
       #endif
     }
     /* globalPhotonsBuffer[0] = dt_i; */
