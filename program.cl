@@ -1,6 +1,9 @@
-#pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable 
+#pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
+#pragma OPENCL EXTENSION cl_khr_local_int32_base_atomics : enable
+
 #define LOCK(a) atom_cmpxchg(a, 0, 1) 
 #define UNLOCK(a) atom_xchg(a, 0) 
+#define LOCALPHOTONSLEN 1000
 
 // Pre: a<M, b<M 
 // Post: r=(a+b) mod M 
@@ -245,10 +248,11 @@ __kernel void hello(__private uint endTime,
 		    __local uint *localPhotonsBuffer
 		    ){
   int index = get_global_id(0); 
-  __global int *mutex;
+  __global int *globalMutex;
+  __local int *localMutex;
   
-  /* __local uint localPhotonsPos;  */
-  /* localPhotonsPos = 0; */
+  __local uint localPhotonsPos;  
+  localPhotonsPos = 0; 
 
   // Series of arrival times for each individual photon
   *globalPhotonsPos = 0;
@@ -285,20 +289,27 @@ __kernel void hello(__private uint endTime,
     dt_i = timeStep(r_i);    
     dF_i = (uint)(I_i * dt_i);
 
+
     
     // \(t_i < \textrm{photon}_n < t_{i+1} \longrightarrow F_i < F(\text{photon}_n) < F_{i+1}\)
     while(F_photon_n < F_i + dF_i){
       float U = nextUfloat(&rng);
       F_photon_n -= log(U)/photonsPerIntensityPerTime;
-      #ifndef SINGLE
-      while(LOCK(mutex)); 
-      #endif
-      globalPhotonsBuffer[*globalPhotonsPos] = (F_photon_n - F_i)*dt_i/dF_i + t_i;
-      atomic_inc(globalPhotonsPos);
-      //      *globalPhotonsPos = *globalPhotonsPos + 1;
-      #ifndef SINGLE
-      UNLOCK(mutex); 
-      #endif
+
+      while(LOCK(localMutex)); 
+      if(localPhotonsPos < LOCALPHOTONSLEN){
+	localPhotonsBuffer[localPhotonsPos] = (F_photon_n - F_i)*dt_i/dF_i + t_i;
+	localPhotonsPos ++;
+	UNLOCK(localMutex);
+      }else{
+	UNLOCK(localMutex);
+	uint globalpos = atomic_add(globalPhotonsPos, LOCALPHOTONSLEN);
+    	async_work_group_copy(globalPhotonsBuffer + globalpos,  
+			      localPhotonsBuffer,   
+    			      LOCALPHOTONSLEN*sizeof(uint), (event_t) 0);  
+
+      }
+
     }
     /* globalPhotonsBuffer[0] = dt_i; */
     /* globalPhotonsBuffer[1] = endTime; */
