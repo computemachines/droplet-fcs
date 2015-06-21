@@ -7,16 +7,21 @@
 
 #include "fcs.cpp"
 
-FCS fcs;
+#define NO_PROFILING 0
+#define WITH_PROFILING 1
+#define PROFILING_ONLY 2
 
 extern "C" {
   
   static PyObject * fcs_fcs(PyObject *self, PyObject *args){
-    int totalDroplets, dropletsPerGroup;
+    FCS fcs;
+    int totalDroplets, dropletsPerGroup, profilingOption;
     float endTime, photonsPerIntensityPerTime;
     
-    PyArg_ParseTuple(args, "iiff", &totalDroplets, &dropletsPerGroup,
-		                     &endTime, &photonsPerIntensityPerTime);
+    PyArg_ParseTuple(args, "iiffi", &totalDroplets, &dropletsPerGroup,
+		     &endTime, &photonsPerIntensityPerTime, &profilingOption);
+
+    
 
     fcs.init();
     tuple<uint*, uint, long> results = fcs.run(totalDroplets,
@@ -37,7 +42,10 @@ extern "C" {
   };
 
   PyMODINIT_FUNC initfcs(void){
-    Py_InitModule("fcs", FCSMethods);
+    PyObject *m = Py_InitModule("fcs", FCSMethods);
+    PyModule_AddIntConstant(m, "NO_PROFILING", NO_PROFILING);
+    PyModule_AddIntConstant(m, "WITH_PROFILING", WITH_PROFILING);
+    PyModule_AddIntConstant(m, "PROFILING_ONLY", PROFILING_ONLY);
     import_array();
   }
 }
