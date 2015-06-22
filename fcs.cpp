@@ -38,8 +38,8 @@ int main(int argc, char** argv){
 }
 
 
-void FCS::init(){
-  Simulation::init(readFile("program.cl"));
+void FCS::init(int rngReserved, int localPhotonsLen){
+  Simulation::init(readFile("program.cl"), rngReserved, localPhotonsLen);
 }
 
 tuple<uint*, uint, long> FCS::run(int totalDroplets,
