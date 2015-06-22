@@ -21,7 +21,7 @@ using namespace std;
 //   simulation.run();
 // }
 
-void Simulation::init(string source){
+void Simulation::init(string source, int rngReserved, int localPhotonsLen){
   if(initialized)
     return;
   initialized = true;
@@ -49,7 +49,9 @@ void Simulation::init(string source){
   program = cl::Program(context, sources, &err);
   assert(err == CL_SUCCESS);
 
-  err = program.build(devices, "-DSINGLE");
+  string options = "-D RNGRESERVED="+to_string(rngReserved)+" -D LOCALPHOTONSLEN="+to_string(localPhotonsLen);
+  cout << "program.cl build options: " << options << endl;
+  err = program.build(devices, options.c_str());
   
   string log;
   program.getBuildInfo(devices[0], CL_PROGRAM_BUILD_LOG, &log);

@@ -18,7 +18,9 @@ public:
   void init();
   tuple<uint*, uint, long> run(int totalDroplets,
 			       int dropletsPerGroup,
-			       float endtime, float photonsPerIntensityPerTime);
+			       float endtime,
+			       float photonsPerIntensityPerTime,
+			       int maxPhotons=1000000);
 };
 
 #endif

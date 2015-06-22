@@ -42,10 +42,11 @@ void FCS::init(){
   Simulation::init(readFile("program.cl"));
 }
 
-#define MAXPHOTONS 1000000
 tuple<uint*, uint, long> FCS::run(int totalDroplets,
 				  int dropletsPerGroup,
-				  float endTime, float photonsPerIntensityPerTime){
+				  float endTime,
+				  float photonsPerIntensityPerTime,
+				  int maxPhotons){
   assert(totalDroplets%dropletsPerGroup == 0);
 
   #ifdef DEBUG
@@ -55,7 +56,7 @@ tuple<uint*, uint, long> FCS::run(int totalDroplets,
   cl::Event kernelEvent;
   cl_int err;
   cl::Buffer photonsBuffer = cl::Buffer(context, CL_MEM_WRITE_ONLY,
-					MAXPHOTONS*sizeof(cl_uint), NULL, &err);
+					maxPhotons*sizeof(cl_uint), NULL, &err);
   cl_uint numPhotons = 0;
   cl::Buffer numPhotonsBuffer = cl::Buffer(context, CL_MEM_READ_WRITE|CL_MEM_COPY_HOST_PTR,
 					   sizeof(cl_uint), &numPhotons, &err);

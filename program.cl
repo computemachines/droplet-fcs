@@ -3,7 +3,7 @@
 
 #define LOCK(a) atom_cmpxchg(a, 0, 1) 
 #define UNLOCK(a) atom_xchg(a, 0) 
-#define LOCALPHOTONSLEN 1000
+
 
 // Pre: a<M, b<M 
 // Post: r=(a+b) mod M 
@@ -240,6 +240,8 @@ float intensity(float3 position){
   return 1;
 }
 
+#define RNGRESERVED 10000
+#define LOCALPHOTONSLEN 1000
 __kernel void hello(__private uint endTime,
 		    __private uint dropletsPerGroup,
 		    __private float photonsPerIntensityPerTime,
@@ -258,7 +260,7 @@ __kernel void hello(__private uint endTime,
   *globalPhotonsPos = 0;
 
   mwc64x_state_t rng; 
-  MWC64X_SeedStreams(&rng, 0, 10000); 
+  MWC64X_SeedStreams(&rng, 0, RNGRESERVED); 
 
   // \(t_{i+ 1} = t_i + dt_i\)
   uint t_i = 0, dt_i;
