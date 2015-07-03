@@ -1,4 +1,0 @@
-Devices found: 1
-Device Vendor ID: 4318
-program.cl build options: -D RNGRESERVED=10000 -D LOCALPHOTONSLEN=1000
-results (length: 0) {}
