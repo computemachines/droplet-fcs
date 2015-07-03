@@ -10,7 +10,7 @@ fcs_out = open('out/fcs_out', 'w')
 
 #COMPILE = 'scons'
 #if sp.call('scons -v')[0] != 0:
-COMPILE = 'python ../scons/scons.py'
+COMPILE = ['python', '../scons/scons.py']
 
 if sp.call(COMPILE, stdout=compile_out, stderr=sp.STDOUT) == 0:
     sp.call('./fcs', stdout=fcs_out, stderr=sp.STDOUT)
