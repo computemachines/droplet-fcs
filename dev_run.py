@@ -5,6 +5,7 @@ import subprocess as sp
 
 repo = git.Repo('.')
 
+sp.call(['mkdir', 'out'])
 compile_out = open('out/compile_out', 'w')
 fcs_out = open('out/fcs_out', 'w')
 
