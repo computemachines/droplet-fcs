@@ -31,7 +31,7 @@ int main(int argc, char** argv){
   std::tuple<uint*, uint, long> results = fcs.run(1, 1, 1.0, 1e-8);
   uint *data = get<0>(results);
   
-  printf("results (length: %d) {", get<1>(results));
+  printf("results (this is words length: %d) {", get<1>(results));
   for(int i = 0; i < get<1>(results); i++)
     printf("%d, ", data[i]);
   printf("}\n");
