@@ -23,3 +23,5 @@ gencommit = repo.index.commit("autogen output commit",
 repo.heads['dev-goldnerlab-out'].commit = gencommit
 repo.heads.dev.commit = gencommit.parents[1]
 
+repo.head.reset(index=True, working_tree=True)
+
