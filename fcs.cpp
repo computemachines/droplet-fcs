@@ -30,7 +30,7 @@ int main(int argc, char** argv){
   fcs.init();
   std::tuple<uint*, uint, long> results = fcs.run(1, 1, 1.0, 1e-8);
   uint *data = get<0>(results);
-  
+  printf("this is a test\n");
   printf("results (length: %d) {", get<1>(results));
   for(int i = 0; i < get<1>(results); i++)
     printf("%d, ", data[i]);
