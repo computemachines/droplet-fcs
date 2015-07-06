@@ -1,7 +1,9 @@
 #! /usr/bin/python3
 
-import git
+import git, os
 import subprocess as sp
+os.chdir('~/projects/droplet-fcs')
+
 
 repo = git.Repo('.')
 
