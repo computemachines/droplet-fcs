@@ -1,30 +1,5 @@
 scons: Reading SConscript files ...
 scons: done reading SConscript files.
 scons: Building targets ...
-g++ -o fcs.o -c -std=c++11 -I/usr/include/python2.7 -I/usr/lib/python2.7/dist-packages/numpy/core/include/numpy fcs.cpp
-fcs.cpp: In member function ‘std::tuple<unsigned int*, unsigned int, long int> FCS::run(int, int, float, float, int)’:
-fcs.cpp:70:24: warning: ‘cl::LocalSpaceArg cl::__local(size_t)’ is deprecated (declared at /usr/include/CL/cl.hpp:4465) [-Wdeprecated-declarations]
-   kernel.setArg(5, cl::__local(1000*sizeof(cl_uint)));
-                        ^
-fcs.cpp:70:52: warning: ‘cl::LocalSpaceArg cl::__local(size_t)’ is deprecated (declared at /usr/include/CL/cl.hpp:4465) [-Wdeprecated-declarations]
-   kernel.setArg(5, cl::__local(1000*sizeof(cl_uint)));
-                                                    ^
-g++ -o fcs fcs.o simulation.o -lrt -lOpenCL
-g++ -o fcsmodule.os -c -std=c++11 -fPIC -I/usr/include/python2.7 -I/usr/lib/python2.7/dist-packages/numpy/core/include/numpy fcsmodule.cpp
-In file included from /usr/include/python2.7/numpy/ndarraytypes.h:1761:0,
-                 from /usr/include/python2.7/numpy/ndarrayobject.h:17,
-                 from /usr/include/python2.7/numpy/arrayobject.h:4,
-                 from fcsmodule.cpp:5:
-/usr/include/python2.7/numpy/npy_1_7_deprecated_api.h:15:2: warning: #warning "Using deprecated NumPy API, disable it by " "#defining NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION" [-Wcpp]
- #warning "Using deprecated NumPy API, disable it by " \
-  ^
-In file included from fcsmodule.cpp:8:0:
-fcs.cpp: In member function ‘std::tuple<unsigned int*, unsigned int, long int> FCS::run(int, int, float, float, int)’:
-fcs.cpp:70:24: warning: ‘cl::LocalSpaceArg cl::__local(size_t)’ is deprecated (declared at /usr/include/CL/cl.hpp:4465) [-Wdeprecated-declarations]
-   kernel.setArg(5, cl::__local(1000*sizeof(cl_uint)));
-                        ^
-fcs.cpp:70:52: warning: ‘cl::LocalSpaceArg cl::__local(size_t)’ is deprecated (declared at /usr/include/CL/cl.hpp:4465) [-Wdeprecated-declarations]
-   kernel.setArg(5, cl::__local(1000*sizeof(cl_uint)));
-                                                    ^
-g++ -o fcsmodule.so -shared fcsmodule.os simulation.os -lrt -lOpenCL
+scons: `.' is up to date.
 scons: done building targets.

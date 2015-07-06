@@ -2,7 +2,7 @@
 
 import git, os
 import subprocess as sp
-os.chdir('~/projects/droplet-fcs')
+os.chdir('/home/tparker/projects/droplet-fcs/')
 
 
 repo = git.Repo('.')
