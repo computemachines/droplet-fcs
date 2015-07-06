@@ -5,6 +5,9 @@ import subprocess as sp
 
 repo = git.Repo('.')
 
+
+repo.git.pull();
+
 sp.call(['mkdir', 'out'])
 compile_out = open('out/compile_out', 'w')
 fcs_out = open('out/fcs_out', 'w')
@@ -25,3 +28,4 @@ repo.heads.dev.commit = gencommit.parents[1]
 
 repo.head.reset(index=True, working_tree=True)
 
+repo.git.push('origin', 'dev-goldnerlab-out')
