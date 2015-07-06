@@ -7,13 +7,16 @@ FCS Python API
 .. py:data:: WITH_PROFILING
 .. py:data:: PROFILING_ONLY
 
-.. py:function:: fcs(totalDroplets, dropletsPerGroup, time, photonsPerIntensityPerTime, ) -> photons
+.. py:function:: fcs(totalDroplets, dropletsPerGroup, time, photonsPerIntensityPerTime, maxPhotons, rngReserved, localPhotonsLen) -> photons
 
    :param int totalDroplets: Total number of droplets in simulation
    :param int dropletsPerGroup: Number of droplets assigned to each OpenCL work group (must divide totalDroplets)
    :param float time: Simulation time in seconds
    :param float photonsPerIntensityPerTime: Photon density at single molecule maximum intensity
    :param int profiling: Either :py:data:`fcs.NO_PROFILING`, :py:data:`fcs.WITH_PROFILING` or :py:data:`fcs.WITH_PROFILING`.
+   :param int maxPhotons: GPU allocated buffer size
+   :param int rngReserved: Reserved unique random values from stream per droplet
+   :param int localPhotonsLen: Size of buffer in local memory
 
    :return: photons, profilingData or both
    :rtype: :py:class:`numpy.ndarray`, :py:class:`fcs.ProfilingData`, or tuple(:py:class:`numpy.ndarray`, :py:class:`fcs.ProfilingData`)

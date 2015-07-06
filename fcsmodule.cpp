@@ -15,18 +15,20 @@ extern "C" {
   
   static PyObject * fcs_fcs(PyObject *self, PyObject *args){
     FCS fcs;
-    int totalDroplets, dropletsPerGroup, profilingOption;
+    int totalDroplets, dropletsPerGroup, profilingOption, maxPhotons;
+    int rngReserved, localPhotonsLen;
     float endTime, photonsPerIntensityPerTime;
     
-    PyArg_ParseTuple(args, "iiffi", &totalDroplets, &dropletsPerGroup,
-		     &endTime, &photonsPerIntensityPerTime, &profilingOption);
+    PyArg_ParseTuple(args, "iiffii", &totalDroplets, &dropletsPerGroup,
+		     &endTime, &photonsPerIntensityPerTime, &profilingOption,
+		     &maxPhotons, &rngReserved, &localPhotonsLen);
 
     
 
-    fcs.init();
+    fcs.init(rngReserved, localPhotonsLen);
     tuple<uint*, uint, long> results = fcs.run(totalDroplets,
 					       dropletsPerGroup, endTime,
-					       photonsPerIntensityPerTime);
+					       photonsPerIntensityPerTime, maxPhotons);
     uint* data = get<0>(results);
     long time = get<2>(results);
     npy_intp dims = {get<1>(results)};
