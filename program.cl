@@ -243,56 +243,20 @@ float intensity(float3 position){
 #define RNGRESERVED 10000
 #define LOCALPHOTONSLEN 1000
 __kernel void hello(__private uint endTime,
-		    __private uint dropletsPerGroup,
+		    __global uint dropletsRemaining,
 		    __private float photonsPerIntensityPerTime,
-		    __global uint *globalPhotonsPos,
-		    __global uint *globalPhotonsBuffer,
-		    __local uint *localPhotonsBuffer
+		    __global uint* globalBuffer, //write only (thinking about mapping to host mem)
+		    __local uint* localBuffer
 		    ){
-  int index = get_global_id(0); 
+  int n = get_global_id(0);
+  int m = get_local_id(0);
   __global int *globalMutex;
   __local int *localMutex;
   
-  __local uint localPhotonsPos;  
-  localPhotonsPos = 0; 
-
-  // Series of arrival times for each individual photon
-  *globalPhotonsPos = 0;
-
   mwc64x_state_t rng; 
   MWC64X_SeedStreams(&rng, 0, RNGRESERVED); 
 
   // \(t_{i+ 1} = t_i + dt_i\)
-  uint t_i = 0, dt_i;
-  float3 r_i = 2*nextUfloat3(&rng) - (float3)(0.5, 0.5, 0.5); // droplet position at t_i
-  float I_i = intensity(r_i) * (float)(t_i) * 1e-9;
-  // Let \( F(t) =\int_0^t I\, dt\) where I(t_i)=I_i, F(t_i)=t_i
-  // F_photon_n is value of F(t) at nth photon time
-  float F_photon_n = 0, F_i = 0, dF_i = 0; 
-
-  while(t_i < endTime){
-    /*       if(localPhotonsPos < 1000){ */
-    /* 	localPhotonsBuffer[localPhotonsPos] = currentPhotonCDF; */
-    /* 	// change to currentPhoton(currentPhotonCDF, dCDF, dt, targetCDF-dCDF, dropletTime) */
-
-    /* 	localPhotonsPos ++; */
-    /*       }else{ */
-    /* 	localPhotonsPos = 0; */
-
-    /* 	UNLOCK(mutex); */
-    /*         uint globalpos = atomic_add(globalPhotonsPos, 1000); */
-
-    /* /\* 	async_work_group_copy(globalPhotonsBuffer + globalpos, *\/ */
-    /* /\* localPhotonsBuffer,  *\/ */
-    /* /\* 			      1000*sizeof(cl_uint), (event_t)0); *\/ */
-    /*       } */
-
-    /*       UNLOCK(mutex); */
-    dt_i = timeStep(r_i);    
-    dF_i = (uint)(I_i * dt_i);
-
-
-    
     // \(t_i < \textrm{photon}_n < t_{i+1} \longrightarrow F_i < F(\text{photon}_n) < F_{i+1}\)
     while(F_photon_n < F_i + dF_i){
       float U = nextUfloat(&rng);

@@ -15,12 +15,14 @@ using namespace std;
 class FCS : public Simulation{
   cl::Buffer timestamps;
 public:
-  void init(int rngReserved=10000, int localPhotonsLen=1000);
+  void init(int rngReserved=10000);
   tuple<uint*, uint, long> run(int totalDroplets,
-			       int dropletsPerGroup,
+			       int workgroups,
+			       int workitems,
 			       float endtime,
 			       float photonsPerIntensityPerTime,
-			       int maxPhotons=1000000);
+			       int globalPhotonMetaBufferCount,
+			       int localPhotonBufferCount);
 };
 
 #endif
