@@ -254,40 +254,42 @@ __kernel void hello(__private uint endTime,
   __local int *localMutex;
   
   mwc64x_state_t rng; 
-  MWC64X_SeedStreams(&rng, 0, RNGRESERVED); 
+  MWC64X_SeedStreams(&rng, 0, RNGRESERVED);
 
+
+  while(atomic_dec(&dropletsRemaining)){
+    
   // \(t_{i+ 1} = t_i + dt_i\)
-    // \(t_i < \textrm{photon}_n < t_{i+1} \longrightarrow F_i < F(\text{photon}_n) < F_{i+1}\)
-    while(F_photon_n < F_i + dF_i){
-      float U = nextUfloat(&rng);
-      F_photon_n -= log(U)/photonsPerIntensityPerTime;
+  // \(t_i < \textrm{photon}_n < t_{i+1} \longrightarrow F_i < F(\text{photon}_n) < F_{i+1}\)
+  while(F_photon_n < F_i + dF_i){
+    float U = nextUfloat(&rng);
+    F_photon_n -= log(U)/photonsPerIntensityPerTime;
 
-      while(LOCK(localMutex)); 
-      if(localPhotonsPos < LOCALPHOTONSLEN){
-	localPhotonsBuffer[localPhotonsPos] = (F_photon_n - F_i)*dt_i/dF_i + t_i;
-	localPhotonsPos ++;
-	UNLOCK(localMutex);
-      }else{
-	UNLOCK(localMutex);
-	uint globalpos = atomic_add(globalPhotonsPos, LOCALPHOTONSLEN);
-    	async_work_group_copy(globalPhotonsBuffer + globalpos,  
-			      localPhotonsBuffer,   
-    			      LOCALPHOTONSLEN*sizeof(uint), (event_t) 0);  
-
-      }
+    while(LOCK(localMutex));
+    if(localPhotonsPos < LOCALPHOTONSLEN){
+      localPhotonsBuffer[localPhotonsPos] = (F_photon_n - F_i)*dt_i/dF_i + t_i;
+      localPhotonsPos ++;
+      UNLOCK(localMutex);
+    }else{
+      UNLOCK(localMutex);
+      uint globalpos = atomic_add(globalPhotonsPos, LOCALPHOTONSLEN);
+      async_work_group_copy(globalPhotonsBuffer + globalpos,  
+			    localPhotonsBuffer,   
+			    LOCALPHOTONSLEN*sizeof(uint), (event_t) 0);  
 
     }
-    /* globalPhotonsBuffer[0] = dt_i; */
-    /* globalPhotonsBuffer[1] = endTime; */
 
-    t_i += dt_i;
-    r_i += sigma(dt_i)*nextGfloat3(&rng);
-    // TODO: modulus r_i to keep it in box
-    I_i = intensity(r_i);// * (float)(t_i) * 1e-9;
-    F_i += dF_i;
   }
-  //    atomic_inc(globalPhotonsPos);
-  /* uint globalpos = atomic_add(globalPhotonsPos, localPhotonsPos); */
-  /* async_work_group_copy((const uint *)(globalPhotonsBuffer + *globalPhotonsPos), */
+  /* globalPhotonsBuffer[0] = dt_i; */
+  /* globalPhotonsBuffer[1] = endTime; */
+
+  t_i += dt_i;
+  r_i += sigma(dt_i)*nextGfloat3(&rng);
+  // TODO: modulus r_i to keep it in box
+  I_i = intensity(r_i);// * (float)(t_i) * 1e-9;
+  F_i += dF_i;
+//    atomic_inc(globalPhotonsPos);
+/* uint globalpos = atomic_add(globalPhotonsPos, localPhotonsPos); */
+/* async_work_group_copy((const uint *)(globalPhotonsBuffer + *globalPhotonsPos), */
   /* 			localPhotonsBuffer, localPhotonsPos, (event_t) 0 ); */
 }
