@@ -258,8 +258,10 @@ __kernel void hello(__global uint* dropletsRemaining,
   __local int *localMutex;
 
 
-  for(int i = 0; i < 1000; i++)
+  for(int i = 0; i < 1000; i++){
     globalBuffer[i] = 0;
+    localBuffer[i] = 5;
+  }
   
   globalBuffer[0] = *dropletsRemaining;
   

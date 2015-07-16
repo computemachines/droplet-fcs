@@ -65,14 +65,16 @@ tuple<uint*, uint, long> FCS::run(uint totalDroplets,
   assert(err == CL_SUCCESS);
   cl::Buffer dropletsRemaining = cl::Buffer(context, CL_MEM_READ_WRITE|CL_MEM_COPY_HOST_PTR, sizeof(cl_uint),
 					    &totalDroplets, &err);
-  
+  if(err != CL_SUCCESS)
+    printf("buffer create fail\n");
+  assert(err == CL_SUCCESS);
   cl_uint endTimeNS = (cl_uint)(endTime*1e9);
   kernel.setArg(0, dropletsRemaining);
   kernel.setArg(1, globalBuffer);
-  kernel.setArg(2, cl::__local(workitems*localBufferSizePerWorkitem*sizeof(cl_uint))); //localPhotonBuffers
+  kernel.setArg(2, cl::__local(workitems*localBufferSizePerWorkitem*sizeof(cl_uint)));
 
   #ifdef DEBUG
-  printf("workgroups x workitems: %d/x%d\n", workgroups, workitems);
+  printf("workgroups x workitems: %dx%d\n", workgroups, workitems);
   
   struct timespec start, stop;
   clock_gettime(CLOCK_REALTIME, &start);
