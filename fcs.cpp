@@ -57,7 +57,7 @@ tuple<uint*, uint, long> FCS::run(uint totalDroplets,
   cl::Event kernelEvent;
   cl_int err;
   cl::Buffer globalBuffer = 
-    cl::Buffer(context, CL_MEM_WRITE_ONLY,
+    cl::Buffer(context, CL_MEM_READ_WRITE,
 	       workgroups*globalBufferSizePerWorkgroup*sizeof(cl_uint),
 	       NULL, &err);
   if(err != CL_SUCCESS)

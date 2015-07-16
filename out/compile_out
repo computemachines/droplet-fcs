@@ -9,7 +9,6 @@ fcs.cpp:72:24: warning: ‘cl::LocalSpaceArg cl::__local(size_t)’ is deprecate
 fcs.cpp:72:84: warning: ‘cl::LocalSpaceArg cl::__local(size_t)’ is deprecated (declared at /usr/include/CL/cl.hpp:4465) [-Wdeprecated-declarations]
    kernel.setArg(2, cl::__local(workitems*localBufferSizePerWorkitem*sizeof(cl_uint))); //localPhotonBuffers
                                                                                     ^
-g++ -o simulation.o -c -std=c++11 -I/usr/include/python2.7 -I/usr/lib/python2.7/dist-packages/numpy/core/include/numpy simulation.cpp
 g++ -o fcs fcs.o simulation.o -lrt -lOpenCL
 g++ -o fcsmodule.os -c -std=c++11 -fPIC -I/usr/include/python2.7 -I/usr/lib/python2.7/dist-packages/numpy/core/include/numpy fcsmodule.cpp
 In file included from /usr/include/python2.7/numpy/ndarraytypes.h:1761:0,
@@ -27,6 +26,5 @@ fcs.cpp:72:24: warning: ‘cl::LocalSpaceArg cl::__local(size_t)’ is deprecate
 fcs.cpp:72:84: warning: ‘cl::LocalSpaceArg cl::__local(size_t)’ is deprecated (declared at /usr/include/CL/cl.hpp:4465) [-Wdeprecated-declarations]
    kernel.setArg(2, cl::__local(workitems*localBufferSizePerWorkitem*sizeof(cl_uint))); //localPhotonBuffers
                                                                                     ^
-g++ -o simulation.os -c -std=c++11 -fPIC -I/usr/include/python2.7 -I/usr/lib/python2.7/dist-packages/numpy/core/include/numpy simulation.cpp
 g++ -o fcsmodule.so -shared fcsmodule.os simulation.os -lrt -lOpenCL
 scons: done building targets.
