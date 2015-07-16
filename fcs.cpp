@@ -60,7 +60,7 @@ tuple<uint*, uint, long> FCS::run(int totalDroplets,
     cl::Buffer(context, CL_MEM_WRITE_ONLY,
 	       workgroups*globalBufferSizePerWorkgroup*sizeof(cl_uint),
 	       NULL, &err);
-  cl::Buffer dropletsRemaining = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(cl_uint),
+  cl::Buffer dropletsRemaining = cl::Buffer(context, CL_MEM_READ_WRITE|CL_MEM_COPY_HOST_PTR, sizeof(cl_uint),
 					    &totalDroplets, &err);
   
   cl_uint endTimeNS = (cl_uint)(endTime*1e9);
