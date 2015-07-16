@@ -228,11 +228,11 @@ float3 nextGfloat3(mwc64x_state_t *s){
   return (float3)(nextGaussVec2(s), nextGaussVec2(s).x);
 }
 
-uint timestep(float3 position){
-  return (uint)5e7;
+float timestep(float3 position){
+  return 1.0;
 }
 
-float sigma(uint timestep){
+float sigma(float timestep){
   return 1;
 }
 
@@ -244,38 +244,60 @@ void wrap(float3 *position){
 }
 
 #define RNGRESERVED 10000
-#define LOCALPHOTONSLEN 1000
+#define LOCALSIZE 1000
+#define GLOBALSIZE 1000
 #define PHOTONSPERINTENSITYPERTIME 1.0
 #define ENDTIME 10.0
+#define DEBUGSIZE 20
 
 __kernel void hello(__global uint* dropletsRemaining,
-		    __global uint* globalBuffer, //write only (thinking about mapping to host mem)
-		    __local uint* localBuffer
+		    __global ulong* globalBuffer, //write only (thinking about mapping to host mem)
+		    __local ulong* localBuffer 
+                    #ifdef DEBUG
+		    , __global float* debug
+		    #endif
 		    ){
   int n = get_global_id(0);
   int m = get_local_id(0);
   __global int *globalMutex;
   __local int *localMutex;
 
-
   for(int i = 0; i < 1000; i++){
     globalBuffer[i] = 0;
-    localBuffer[i] = 5;
   }
   
-  globalBuffer[0] = *dropletsRemaining;
-  
+  #ifdef DEBUG
+  for(int i = 0; i < DEBUGSIZE; i++)
+    debug[i] = 0;
+  debug[0] = *dropletsRemaining;
+  debug[1] = RNGRESERVED;
+  debug[2] = LOCALSIZE;
+  debug[3] = GLOBALSIZE;
+  debug[4] = PHOTONSPERINTENSITYPERTIME;
+  debug[5] = ENDTIME;
+  debug[6] = DEBUGSIZE;
+  #endif
   mwc64x_state_t rng; 
   MWC64X_SeedStreams(&rng, 0, RNGRESERVED);
 
+  __local uint index;
+
   while(atomic_dec(dropletsRemaining)>0){
-    globalBuffer[1] ++;
+    #ifdef DEBUG
+    debug[7] ++;
+    #endif
     float3 position = nextUfloat3(&rng);
     float intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
     float T_j = 0, dT_j = timestep(position);
     float CDFI_j = 0;
     float photon_i = 0, CDFphoton_i = 0;
-
+    #ifdef DEBUG
+    vstore3(position, 0, debug+8);
+    debug[11] = intensity;
+    debug[12] = CDFphoton_i;
+    debug[13] = CDFI_j;
+    debug[14] = dT_j;
+    #endif
     do{
       if(CDFphoton_i > CDFI_j){
 	// step t_j
@@ -290,6 +312,11 @@ __kernel void hello(__global uint* dropletsRemaining,
 
       if(CDFphoton_i < CDFI_j + intensity*dT_j){
 	photon_i = (CDFphoton_i - CDFI_j)/intensity + T_j;
+	globalBuffer[index] = (ulong)(photon_i*1e9);
+	#ifdef DEBUG
+	debug[index+16] = photon_i;
+	#endif
+	index ++;
 	CDFphoton_i -= log(nextUfloat(&rng));
       }else{
 	photon_i = T_j; // do not save to buffer. this is only to prevent endless do-while
