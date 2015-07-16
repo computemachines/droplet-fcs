@@ -257,13 +257,17 @@ __kernel void hello(__global uint* dropletsRemaining,
   __global int *globalMutex;
   __local int *localMutex;
 
+
+  for(int i = 0; i < 1000; i++)
+    globalBuffer[i] = 0;
+  
   globalBuffer[0] = *dropletsRemaining;
   
   mwc64x_state_t rng; 
   MWC64X_SeedStreams(&rng, 0, RNGRESERVED);
 
   while(atomic_dec(dropletsRemaining)>0){
-    globalBuffer[2] = 2;
+    globalBuffer[1] ++;
     float3 position = nextUfloat3(&rng);
     float intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
     float T_j = 0, dT_j = timestep(position);
