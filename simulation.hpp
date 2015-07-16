@@ -14,7 +14,7 @@ protected:
   cl::CommandQueue queue;
   cl::Kernel kernel;
 public:
-  void init(std::string source, int rngReserved=10000, int localPhotonsLen=1000);
+  void init(std::string source, int rngReserved);
 };
 
 

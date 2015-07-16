@@ -228,7 +228,7 @@ float3 nextGfloat3(mwc64x_state_t *s){
   return (float3)(nextGaussVec2(s), nextGaussVec2(s).x);
 }
 
-uint timeStep(float3 position){
+uint timestep(float3 position){
   return (uint)5e7;
 }
 
@@ -236,94 +236,58 @@ float sigma(uint timestep){
   return 1;
 }
 
-float intensity(float3 position){
+float detectionIntensity(float3 position){
   return 1;
+}
+
+void wrap(float3 *position){
 }
 
 #define RNGRESERVED 10000
 #define LOCALPHOTONSLEN 1000
-__kernel void hello(__private uint endTime,
-		    __private uint dropletsPerGroup,
-		    __private float photonsPerIntensityPerTime,
-		    __global uint *globalPhotonsPos,
-		    __global uint *globalPhotonsBuffer,
-		    __local uint *localPhotonsBuffer
+#define PHOTONSPERINTENSITYPERTIME 1.0
+#define ENDTIME 10.0
+
+__kernel void hello(__global uint* dropletsRemaining,
+		    __global uint* globalBuffer, //write only (thinking about mapping to host mem)
+		    __local uint* localBuffer
 		    ){
-  int index = get_global_id(0); 
+  int n = get_global_id(0);
+  int m = get_local_id(0);
   __global int *globalMutex;
   __local int *localMutex;
+
+  globalBuffer[0] = *dropletsRemaining;
   
-  __local uint localPhotonsPos;  
-  localPhotonsPos = 0; 
-
-  // Series of arrival times for each individual photon
-  *globalPhotonsPos = 0;
-
   mwc64x_state_t rng; 
-  MWC64X_SeedStreams(&rng, 0, RNGRESERVED); 
+  MWC64X_SeedStreams(&rng, 0, RNGRESERVED);
 
-  // \(t_{i+ 1} = t_i + dt_i\)
-  uint t_i = 0, dt_i;
-  float3 r_i = 2*nextUfloat3(&rng) - (float3)(0.5, 0.5, 0.5); // droplet position at t_i
-  float I_i = intensity(r_i) * (float)(t_i) * 1e-9;
-  // Let \( F(t) =\int_0^t I\, dt\) where I(t_i)=I_i, F(t_i)=t_i
-  // F_photon_n is value of F(t) at nth photon time
-  float F_photon_n = 0, F_i = 0, dF_i = 0; 
+  while(atomic_dec(dropletsRemaining)>0){
+    globalBuffer[2] = 2;
+    float3 position = nextUfloat3(&rng);
+    float intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
+    float T_j = 0, dT_j = timestep(position);
+    float CDFI_j = 0;
+    float photon_i = 0, CDFphoton_i = 0;
 
-  while(t_i < endTime){
-    /*       if(localPhotonsPos < 1000){ */
-    /* 	localPhotonsBuffer[localPhotonsPos] = currentPhotonCDF; */
-    /* 	// change to currentPhoton(currentPhotonCDF, dCDF, dt, targetCDF-dCDF, dropletTime) */
-
-    /* 	localPhotonsPos ++; */
-    /*       }else{ */
-    /* 	localPhotonsPos = 0; */
-
-    /* 	UNLOCK(mutex); */
-    /*         uint globalpos = atomic_add(globalPhotonsPos, 1000); */
-
-    /* /\* 	async_work_group_copy(globalPhotonsBuffer + globalpos, *\/ */
-    /* /\* localPhotonsBuffer,  *\/ */
-    /* /\* 			      1000*sizeof(cl_uint), (event_t)0); *\/ */
-    /*       } */
-
-    /*       UNLOCK(mutex); */
-    dt_i = timeStep(r_i);    
-    dF_i = (uint)(I_i * dt_i);
-
-
-    
-    // \(t_i < \textrm{photon}_n < t_{i+1} \longrightarrow F_i < F(\text{photon}_n) < F_{i+1}\)
-    while(F_photon_n < F_i + dF_i){
-      float U = nextUfloat(&rng);
-      F_photon_n -= log(U)/photonsPerIntensityPerTime;
-
-      while(LOCK(localMutex)); 
-      if(localPhotonsPos < LOCALPHOTONSLEN){
-	localPhotonsBuffer[localPhotonsPos] = (F_photon_n - F_i)*dt_i/dF_i + t_i;
-	localPhotonsPos ++;
-	UNLOCK(localMutex);
-      }else{
-	UNLOCK(localMutex);
-	uint globalpos = atomic_add(globalPhotonsPos, LOCALPHOTONSLEN);
-    	async_work_group_copy(globalPhotonsBuffer + globalpos,  
-			      localPhotonsBuffer,   
-    			      LOCALPHOTONSLEN*sizeof(uint), (event_t) 0);  
-
+    do{
+      if(CDFphoton_i > CDFI_j){
+	// step t_j
+	T_j += dT_j;
+	CDFI_j += intensity*dT_j;
+	
+	dT_j = timestep(position);
+	position += sigma(dT_j)*nextGfloat3(&rng);
+	intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
+	wrap(&position);
       }
 
-    }
-    /* globalPhotonsBuffer[0] = dt_i; */
-    /* globalPhotonsBuffer[1] = endTime; */
-
-    t_i += dt_i;
-    r_i += sigma(dt_i)*nextGfloat3(&rng);
-    // TODO: modulus r_i to keep it in box
-    I_i = intensity(r_i);// * (float)(t_i) * 1e-9;
-    F_i += dF_i;
+      if(CDFphoton_i < CDFI_j + intensity*dT_j){
+	photon_i = (CDFphoton_i - CDFI_j)/intensity + T_j;
+	CDFphoton_i -= log(nextUfloat(&rng));
+      }else{
+	photon_i = T_j; // do not save to buffer. this is only to prevent endless do-while
+      }
+    }while(photon_i < ENDTIME);
   }
-  //    atomic_inc(globalPhotonsPos);
-  /* uint globalpos = atomic_add(globalPhotonsPos, localPhotonsPos); */
-  /* async_work_group_copy((const uint *)(globalPhotonsBuffer + *globalPhotonsPos), */
-  /* 			localPhotonsBuffer, localPhotonsPos, (event_t) 0 ); */
 }

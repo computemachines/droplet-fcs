@@ -25,7 +25,7 @@ extern "C" {
 
     
 
-    fcs.init(rngReserved, localPhotonsLen);
+    fcs.init(rngReserved);
     tuple<uint*, uint, long> results = fcs.run(totalDroplets,
 					       dropletsPerGroup, endTime,
 					       photonsPerIntensityPerTime, maxPhotons);
