@@ -251,8 +251,8 @@ void wrap(float3 *position){
 #define DEBUGSIZE 20
 
 __kernel void hello(__global uint* dropletsRemaining,
-		    __global uint* globalBuffer, //write only (thinking about mapping to host mem)
-		    __local uint* localBuffer 
+		    __global ulong* globalBuffer, //write only (thinking about mapping to host mem)
+		    __local ulong* localBuffer 
                     #ifdef DEBUG
 		    , __global float* debug
 		    #endif
@@ -312,7 +312,7 @@ __kernel void hello(__global uint* dropletsRemaining,
 
       if(CDFphoton_i < CDFI_j + intensity*dT_j){
 	photon_i = (CDFphoton_i - CDFI_j)/intensity + T_j;
-	globalBuffer[index] = (uint)(photon_i);
+	globalBuffer[index] = (ulong)(photon_i*1e9);
 	#ifdef DEBUG
 	debug[index+16] = photon_i;
 	#endif

@@ -26,11 +26,11 @@ extern "C" {
     
 
     fcs.init(rngReserved);
-    tuple<uint*, uint, long, float*> results = fcs.run();
-    uint* data = get<0>(results);
+    tuple<ulong*, uint, long, float*> results = fcs.run();
+    ulong* data = get<0>(results);
     long time = get<2>(results);
     npy_intp dims = {get<1>(results)};
-    PyObject * numpy = PyArray_SimpleNewFromData(1, &dims, NPY_UINT, data);
+    PyObject * numpy = PyArray_SimpleNewFromData(1, &dims, NPY_ULONG, data);
     PyObject * ret = Py_BuildValue("(Ol)", numpy, time);
     Py_INCREF(ret);
     return ret;

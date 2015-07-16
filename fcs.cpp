@@ -30,11 +30,11 @@ using namespace std;
 int main(int argc, char** argv){
   FCS fcs;
   fcs.init();
-  std::tuple<uint*, uint, long, float*> results = fcs.run();
-  uint *data = get<0>(results);
+  std::tuple<ulong*, uint, long, float*> results = fcs.run();
+  ulong *data = get<0>(results);
   printf("results (length: %d) {", get<1>(results));
-  for(int i = 0; i < get<1>(results); i++)
-    printf("%d, ", data[i]);
+  for(uint i = 0; i < get<1>(results); i++)
+    printf("%lu, ", data[i]);
   printf("}\n");
   #ifdef DEBUG
   float *debug = get<3>(results);
@@ -52,7 +52,7 @@ void FCS::init(int rngReserved){
 
 // metaBuffer is in global mem but owned by workgroup
 // buffer is in local mem but owned by workitem
-tuple<uint*, uint, long, float*> FCS::run(uint totalDroplets,
+tuple<ulong*, uint, long, float*> FCS::run(uint totalDroplets,
 				  uint workgroups,
 				  uint workitems,
 				  float endTime,
@@ -67,7 +67,7 @@ tuple<uint*, uint, long, float*> FCS::run(uint totalDroplets,
   cl_int err;
   cl::Buffer globalBuffer = 
     cl::Buffer(context, CL_MEM_READ_WRITE,
-	       workgroups*globalBufferSizePerWorkgroup*sizeof(cl_uint),
+	       workgroups*globalBufferSizePerWorkgroup*sizeof(cl_ulong),
 	       NULL, &err);
   if(err != CL_SUCCESS)
     printf("buffer create fail\n");
@@ -110,9 +110,9 @@ tuple<uint*, uint, long, float*> FCS::run(uint totalDroplets,
   printf("GPU Start: %d, End: %d, Elapsed: %d\n", astart, aend, aend-astart);
   #endif
 
-  uint * buffer = (uint *)malloc(workgroups*globalBufferSizePerWorkgroup*sizeof(cl_uint));
+  ulong * buffer = (ulong *)malloc(workgroups*globalBufferSizePerWorkgroup*sizeof(cl_ulong));
   queue.enqueueReadBuffer(globalBuffer, CL_TRUE, 0,
-			  workgroups*globalBufferSizePerWorkgroup*sizeof(cl_uint), buffer);
+			  workgroups*globalBufferSizePerWorkgroup*sizeof(cl_ulong), buffer);
   #ifdef DEBUG
   float * debugData = (float *)malloc(DEBUG_SIZE*sizeof(float));
   queue.enqueueReadBuffer(debug, CL_TRUE, 0, DEBUG_SIZE*sizeof(float), debugData);
@@ -121,8 +121,8 @@ tuple<uint*, uint, long, float*> FCS::run(uint totalDroplets,
   queue.finish();
 
   #ifdef DEBUG
-  return make_tuple((uint *)buffer, (uint)(workgroups*globalBufferSizePerWorkgroup), aend-astart, debugData);
+  return make_tuple(buffer, (uint)(workgroups*globalBufferSizePerWorkgroup), aend-astart, debugData);
   #else
-  return make_tuple((uint *)buffer, (uint)(workgroups*globalBufferSizePerWorkgroup), (long)0, (float *) NULL);
+  return make_tuple(buffer, (uint)(workgroups*globalBufferSizePerWorkgroup), (long)0, (float *) NULL);
   #endif
 }
