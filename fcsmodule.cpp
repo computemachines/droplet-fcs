@@ -26,7 +26,7 @@ extern "C" {
     
 
     fcs.init(rngReserved);
-    tuple<uint*, uint, long> results = fcs.run();
+    tuple<uint*, uint, long, float*> results = fcs.run();
     uint* data = get<0>(results);
     long time = get<2>(results);
     npy_intp dims = {get<1>(results)};

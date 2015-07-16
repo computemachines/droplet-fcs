@@ -14,6 +14,8 @@
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
+#define DEBUG_SIZE 20
+
 const string readFile(const string& filename){
   ifstream sourcefile(filename);
   const string source((istreambuf_iterator<char>(sourcefile)),
@@ -28,12 +30,19 @@ using namespace std;
 int main(int argc, char** argv){
   FCS fcs;
   fcs.init();
-  std::tuple<uint*, uint, long> results = fcs.run();
+  std::tuple<uint*, uint, long, float*> results = fcs.run();
   uint *data = get<0>(results);
   printf("results (length: %d) {", get<1>(results));
   for(int i = 0; i < get<1>(results); i++)
     printf("%d, ", data[i]);
   printf("}\n");
+  #ifdef DEBUG
+  float *debug = get<3>(results);
+  printf("debug (length: %d) {", DEBUG_SIZE);
+  for(int i = 0; i < DEBUG_SIZE; i++)
+    printf("%6.4f, ", debug[i]);
+  printf("}\n");
+  #endif
 }
 
 
@@ -43,7 +52,7 @@ void FCS::init(int rngReserved){
 
 // metaBuffer is in global mem but owned by workgroup
 // buffer is in local mem but owned by workitem
-tuple<uint*, uint, long> FCS::run(uint totalDroplets,
+tuple<uint*, uint, long, float*> FCS::run(uint totalDroplets,
 				  uint workgroups,
 				  uint workitems,
 				  float endTime,
@@ -63,8 +72,13 @@ tuple<uint*, uint, long> FCS::run(uint totalDroplets,
   if(err != CL_SUCCESS)
     printf("buffer create fail\n");
   assert(err == CL_SUCCESS);
-  cl::Buffer dropletsRemaining = cl::Buffer(context, CL_MEM_READ_WRITE|CL_MEM_COPY_HOST_PTR, sizeof(cl_uint),
-					    &totalDroplets, &err);
+  cl::Buffer dropletsRemaining = cl::Buffer(context,CL_MEM_READ_WRITE|CL_MEM_COPY_HOST_PTR,
+					    sizeof(cl_uint), &totalDroplets, &err);
+  #ifdef DEBUG
+  assert(err == CL_SUCCESS);
+  cl::Buffer debug = cl::Buffer(context, CL_MEM_READ_WRITE, DEBUG_SIZE*sizeof(float),
+				NULL, &err);
+  #endif
   if(err != CL_SUCCESS)
     printf("buffer create fail\n");
   assert(err == CL_SUCCESS);
@@ -72,7 +86,10 @@ tuple<uint*, uint, long> FCS::run(uint totalDroplets,
   kernel.setArg(0, dropletsRemaining);
   kernel.setArg(1, globalBuffer);
   kernel.setArg(2, cl::__local(workitems*localBufferSizePerWorkitem*sizeof(cl_uint)));
-
+  #ifdef DEBUG
+  kernel.setArg(3, debug);
+  #endif
+  
   #ifdef DEBUG
   printf("workgroups x workitems: %dx%d\n", workgroups, workitems);
   
@@ -96,11 +113,16 @@ tuple<uint*, uint, long> FCS::run(uint totalDroplets,
   uint * buffer = (uint *)malloc(workgroups*globalBufferSizePerWorkgroup*sizeof(cl_uint));
   queue.enqueueReadBuffer(globalBuffer, CL_TRUE, 0,
 			  workgroups*globalBufferSizePerWorkgroup*sizeof(cl_uint), buffer);
+  #ifdef DEBUG
+  float * debugData = (float *)malloc(DEBUG_SIZE*sizeof(float));
+  queue.enqueueReadBuffer(debug, CL_TRUE, 0, DEBUG_SIZE*sizeof(float), debugData);
+  #endif
+
   queue.finish();
 
   #ifdef DEBUG
-  return make_tuple((uint *)buffer, (uint)(workgroups*globalBufferSizePerWorkgroup), aend-astart);
+  return make_tuple((uint *)buffer, (uint)(workgroups*globalBufferSizePerWorkgroup), aend-astart, debugData);
   #else
-  return make_tuple((uint *)buffer, (uint)(workgroups*globalBufferSizePerWorkgroup), (long)0);
+  return make_tuple((uint *)buffer, (uint)(workgroups*globalBufferSizePerWorkgroup), (long)0, (float *) NULL);
   #endif
 }

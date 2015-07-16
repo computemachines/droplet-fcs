@@ -50,6 +50,9 @@ void Simulation::init(string source, int rngReserved){
   assert(err == CL_SUCCESS);
 
   string options = "-D RNGRESERVED="+to_string(rngReserved); //+" -D LOCALPHOTONSLEN="+to_string(localPhotonsLen);
+  #ifdef DEBUG
+  options += " -D DEBUG";
+  #endif
   cout << "program.cl build options: " << options << endl;
   err = program.build(devices, options.c_str());
   
