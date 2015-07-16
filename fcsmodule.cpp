@@ -19,22 +19,20 @@ extern "C" {
     int rngReserved, localPhotonsLen;
     float endTime, photonsPerIntensityPerTime;
     
-    PyArg_ParseTuple(args, "iiffii", &totalDroplets, &dropletsPerGroup,
-		     &endTime, &photonsPerIntensityPerTime, &profilingOption,
-		     &maxPhotons, &rngReserved, &localPhotonsLen);
+    // PyArg_ParseTuple(args, "iiffii", &totalDroplets, &dropletsPerGroup,
+    // 		     &endTime, &photonsPerIntensityPerTime, &profilingOption,
+    // 		     &maxPhotons, &rngReserved, &localPhotonsLen);
 
     
 
     fcs.init(rngReserved);
-    tuple<uint*, uint, long> results = fcs.run(totalDroplets,
-					       dropletsPerGroup, endTime,
-					       photonsPerIntensityPerTime, maxPhotons);
+    tuple<uint*, uint, long> results = fcs.run();
     uint* data = get<0>(results);
     long time = get<2>(results);
     npy_intp dims = {get<1>(results)};
     PyObject * numpy = PyArray_SimpleNewFromData(1, &dims, NPY_UINT, data);
     PyObject * ret = Py_BuildValue("(Ol)", numpy, time);
-    // Py_INCREF(ret);
+    Py_INCREF(ret);
     return ret;
   }
 

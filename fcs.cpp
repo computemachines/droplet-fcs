@@ -74,7 +74,7 @@ tuple<uint*, uint, long> FCS::run(uint totalDroplets,
   kernel.setArg(2, cl::__local(workitems*localBufferSizePerWorkitem*sizeof(cl_uint)));
 
   #ifdef DEBUG
-  printf("hello workgroups x workitems: %dx%d\n", workgroups, workitems);
+  printf("workgroups x workitems: %dx%d\n", workgroups, workitems);
   
   struct timespec start, stop;
   clock_gettime(CLOCK_REALTIME, &start);
@@ -93,7 +93,7 @@ tuple<uint*, uint, long> FCS::run(uint totalDroplets,
   printf("GPU Start: %d, End: %d, Elapsed: %d\n", astart, aend, aend-astart);
   #endif
 
-  uint buffer[workgroups*globalBufferSizePerWorkgroup];
+  uint * buffer = (uint *)malloc(workgroups*globalBufferSizePerWorkgroup*sizeof(cl_uint));
   queue.enqueueReadBuffer(globalBuffer, CL_TRUE, 0,
 			  workgroups*globalBufferSizePerWorkgroup*sizeof(cl_uint), buffer);
   queue.finish();

@@ -257,8 +257,8 @@ __kernel void hello(__global uint* dropletsRemaining,
   __global int *globalMutex;
   __local int *localMutex;
 
-
   for(int i = 0; i < 1000; i++){
+    
     globalBuffer[i] = 0;
     localBuffer[i] = 5;
   }
@@ -296,4 +296,9 @@ __kernel void hello(__global uint* dropletsRemaining,
       }
     }while(photon_i < ENDTIME);
   }
+  uint total = 0;
+  for(int i = 0; i < 1000; i++){
+    total += globalBuffer[i];
+  }
+  globalBuffer[5] = total;
 }
