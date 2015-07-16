@@ -55,10 +55,14 @@ void Simulation::init(string source, int rngReserved){
   
   string log;
   program.getBuildInfo(devices[0], CL_PROGRAM_BUILD_LOG, &log);
-if(err != CL_SUCCESS){
+#ifndef DEBUG
+  if(err != CL_SUCCESS){
+#endif
     cout << log << endl;
-usleep(1000);
-}
+    usleep(1000);
+#ifndef DEBUG
+  }
+#endif
   
   assert(err == CL_SUCCESS);
   
