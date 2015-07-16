@@ -240,8 +240,7 @@ float detectionIntensity(float3 position){
   return 1;
 }
 
-float wrapPosition(float3 position){
-  return position;
+void wrap(float3 *position){
 }
 
 #define RNGRESERVED 10000
@@ -257,11 +256,14 @@ __kernel void hello(__global uint* dropletsRemaining,
   int m = get_local_id(0);
   __global int *globalMutex;
   __local int *localMutex;
+
+  globalBuffer[0] = *dropletsRemaining;
   
   mwc64x_state_t rng; 
   MWC64X_SeedStreams(&rng, 0, RNGRESERVED);
 
-  while(atomic_dec(dropletsRemaining)>=0){
+  while(atomic_dec(dropletsRemaining)>0){
+    globalBuffer[2] = 2;
     float3 position = nextUfloat3(&rng);
     float intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
     float T_j = 0, dT_j = timestep(position);
@@ -277,7 +279,7 @@ __kernel void hello(__global uint* dropletsRemaining,
 	dT_j = timestep(position);
 	position += sigma(dT_j)*nextGfloat3(&rng);
 	intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
-	wrap(position);
+	wrap(&position);
       }
 
       if(CDFphoton_i < CDFI_j + intensity*dT_j){
@@ -287,4 +289,5 @@ __kernel void hello(__global uint* dropletsRemaining,
 	photon_i = T_j; // do not save to buffer. this is only to prevent endless do-while
       }
     }while(photon_i < ENDTIME);
+  }
 }

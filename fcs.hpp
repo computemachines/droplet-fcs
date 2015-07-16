@@ -16,13 +16,13 @@ class FCS : public Simulation{
   cl::Buffer timestamps;
 public:
   void init(int rngReserved=10000);
-  tuple<uint*, uint, long> run(int totalDroplets,
-			       int workgroups,
-			       int workitems,
-			       float endtime,
-			       float photonsPerIntensityPerTime,
-			       int globalPhotonMetaBufferCount,
-			       int localPhotonBufferCount);
+  tuple<uint*, uint, long> run(uint totalDroplets=1,
+			       uint workgroups=1,
+			       uint workitems=1,
+			       float endTime=10.0,
+			       float photonsPerIntensityPerTime=1.0,
+			       uint globalBufferSizePerWorkgroup=1000,
+			       uint localBufferSizePerWorkitem=1000);
 };
 
 #endif
