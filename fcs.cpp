@@ -74,7 +74,7 @@ tuple<uint*, uint, long> FCS::run(uint totalDroplets,
   kernel.setArg(2, cl::__local(workitems*localBufferSizePerWorkitem*sizeof(cl_uint)));
 
   #ifdef DEBUG
-  printf("workgroups x workitems: %dx%d\n", workgroups, workitems);
+  printf("hello workgroups x workitems: %dx%d\n", workgroups, workitems);
   
   struct timespec start, stop;
   clock_gettime(CLOCK_REALTIME, &start);
