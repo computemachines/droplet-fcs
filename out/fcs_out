@@ -2,8 +2,15 @@ Simulation#init()
 Devices found: 1
 Device Vendor ID: 4318
 program.cl build options: -D RNGRESERVED=10000 -D DEBUG
-:287:14: error: cannot increment value of type 'float __attribute__((address_space(1)))'
-    debug[7] ++;
-    ~~~~~~~~ ^
+:241:13: error: expected ';' after return statement
+  return 1.0
+            ^
+            ;
+:293:36: error: passing 'float3' to parameter of incompatible type 'float'
+    float T_j = 0, dT_j = timestep(position);
+                                   ^~~~~~~~
+:232:22: note: passing argument to parameter 'sigma' here
+float timestep(float sigma){
+                     ^
 
 fcs: simulation.cpp:70: void Simulation::init(std::string, int): Assertion `err == 0' failed.

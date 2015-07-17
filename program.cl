@@ -228,12 +228,17 @@ float3 nextGfloat3(mwc64x_state_t *s){
   return (float3)(nextGaussVec2(s), nextGaussVec2(s).x);
 }
 
-float timestep(float3 position){
-  return 1.0;
+#define DIFFUSIVITY 1.0
+float timestep(float sigma){
+  return pow(sigma, 2) / (6*DIFFUSIVITY);
 }
 
 float sigma(float timestep){
-  return 1;
+  return sqrt(6*DIFFUSIVITY*timestep);
+}
+
+float max_sigma(float3 position){
+  return 1.0
 }
 
 float detectionIntensity(float3 position){
@@ -246,7 +251,7 @@ void wrap(float3 *position){
 #define RNGRESERVED 10000
 #define LOCALSIZE 1000
 #define GLOBALSIZE 1000
-#define PHOTONSPERINTENSITYPERTIME 1.0
+#define PHOTONSPERINTENSITYPERTIME 2.0
 #define ENDTIME 10.0
 #define DEBUGSIZE 20
 
@@ -283,28 +288,30 @@ __kernel void hello(__global uint* dropletsRemaining,
   __local uint index;
 
   while(atomic_dec(dropletsRemaining)>0){
-    #ifdef DEBUG
-    debug[7] ++;
-    #endif
     float3 position = nextUfloat3(&rng);
     float intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
     float T_j = 0, dT_j = timestep(position);
     float CDFI_j = 0;
-    float photon_i = 0, CDFphoton_i = 0;
+    float photon_i = 0, CDFphoton_i = -log(nextUfloat(&rng));
+
     #ifdef DEBUG
-    vstore3(position, 0, debug+8);
-    debug[11] = intensity;
-    debug[12] = CDFphoton_i;
-    debug[13] = CDFI_j;
-    debug[14] = dT_j;
+    #ifndef DEBUG_SINGLETON_0
+    #define DEBUG_SINGLETON_0
+    debug[7] = intensity;
+    debug[8] = CDFphoton_i;
+    debug[9] = CDFI_j;
+    debug[10] = dT_j;
+    vstore3(position, 0, debug+11);
     #endif
+    #endif
+    
     do{
       if(CDFphoton_i > CDFI_j){
 	// step t_j
 	T_j += dT_j;
 	CDFI_j += intensity*dT_j;
 	
-	dT_j = timestep(position);
+	dT_j = timestep(max_sigma(position));
 	position += sigma(dT_j)*nextGfloat3(&rng);
 	intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
 	wrap(&position);
@@ -314,7 +321,7 @@ __kernel void hello(__global uint* dropletsRemaining,
 	photon_i = (CDFphoton_i - CDFI_j)/intensity + T_j;
 	globalBuffer[index] = (ulong)(photon_i*1e9);
 	#ifdef DEBUG
-	debug[index+16] = photon_i;
+	debug[index+14] = photon_i;
 	#endif
 	index ++;
 	CDFphoton_i -= log(nextUfloat(&rng));

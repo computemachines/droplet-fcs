@@ -38,9 +38,23 @@ int main(int argc, char** argv){
   printf("}\n");
   #ifdef DEBUG
   float *debug = get<3>(results);
-  printf("debug (length: %d) {", DEBUG_SIZE);
+  string symbols[DEBUG_SIZE] = {"dropletsRemaining",
+				"RNGRESERVED",
+				"LOCALSIZE",
+				"GLOBALSIZE",
+				"PHOTONSPERINTENSITYPERTIME",
+				"ENDTIME",
+				"DEBUGSIZE",
+				"intensity_0",
+				"CDFphoton_0",
+				"CDFI_0",
+				"dT_0",
+				"position_0.x",
+				"position_0.y",
+				"position_0.z"};
+  printf("debug (length: %d) {\n", DEBUG_SIZE);
   for(int i = 0; i < DEBUG_SIZE; i++)
-    printf("%6.4f, ", debug[i]);
+    printf("%s : %6.4f,\n", symbols[i].c_str(), debug[i]);
   printf("}\n");
   #endif
 }
