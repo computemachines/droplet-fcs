@@ -62,7 +62,7 @@ void Simulation::init(string source, int rngReserved){
   if(err != CL_SUCCESS){
 #endif
     cout << log << endl;
-    usleep(1000);
+    usleep(2000);
 #ifndef DEBUG
   }
 #endif
