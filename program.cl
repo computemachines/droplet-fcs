@@ -230,7 +230,7 @@ float3 nextGfloat3(mwc64x_state_t *s){
 
 #define DIFFUSIVITY 1.0
 float timestep(float sigma){
-  return pow(sigma, 2) / (6*DIFFUSIVITY);
+  return pown(sigma, 2) / (6*DIFFUSIVITY);
 }
 
 float sigma(float timestep){
@@ -238,14 +238,14 @@ float sigma(float timestep){
 }
 
 float max_sigma(float3 position){
-  return 1.0
+  return 1.0; //8e-4; // distance/5 to 1um x 1um x 5um box around detection volume + 8nm
 }
 
-float detectionIntensity(float3 position){
-  return 1;
+float detectionIntensity(float3 position){ //detection volume 200nm x 200nm x 2.7um
+  return exp(-dot(position*position, (float3)(2500, 2500, 13.717))/2);
 }
 
-void wrap(float3 *position){
+void wrap(float3 *position){ // +- 1 maps to +- 10um
 }
 
 #define RNGRESERVED 10000
@@ -290,7 +290,7 @@ __kernel void hello(__global uint* dropletsRemaining,
   while(atomic_dec(dropletsRemaining)>0){
     float3 position = nextUfloat3(&rng);
     float intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
-    float T_j = 0, dT_j = timestep(position);
+    float T_j = 0, dT_j = timestep(max_sigma(position));
     float CDFI_j = 0;
     float photon_i = 0, CDFphoton_i = -log(nextUfloat(&rng));
 
@@ -315,17 +315,21 @@ __kernel void hello(__global uint* dropletsRemaining,
 	position += sigma(dT_j)*nextGfloat3(&rng);
 	intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
 	wrap(&position);
+	#ifdef DEBUG
+        #ifndef DEBUG_SINGLETON_1
+        #define DEBUG_SINGLETON_1
+	debug[14] =  CDFI_j + intensity*dT_j;
+	#endif
+	#endif
       }
 
       if(CDFphoton_i < CDFI_j + intensity*dT_j){
 	photon_i = (CDFphoton_i - CDFI_j)/intensity + T_j;
 	globalBuffer[index] = (ulong)(photon_i*1e9);
-	#ifdef DEBUG
-	debug[index+14] = photon_i;
-	#endif
 	index ++;
 	CDFphoton_i -= log(nextUfloat(&rng));
       }else{
+	CDFI_j = CDFI_j + intensity*dT_j;
 	photon_i = T_j; // do not save to buffer. this is only to prevent endless do-while
       }
     }while(photon_i < ENDTIME);
