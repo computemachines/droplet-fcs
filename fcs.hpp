@@ -1,5 +1,5 @@
-#ifndef SIMULATION
-#define SIMULATION
+#ifndef FCS_H
+#define FCS_H
 
 #include <vector>
 #include <tuple>

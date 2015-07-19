@@ -1,5 +1,5 @@
-#ifndef METASIMULATION
-#define METASIMULATION
+#ifndef SIMULATION_H
+#define SIMULATION_H
 
 #include <string>
 
