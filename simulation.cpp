@@ -49,7 +49,9 @@ void Simulation::init(string source, int rngReserved){
   program = cl::Program(context, sources, &err);
   assert(err == CL_SUCCESS);
 
-  string options = "-D RNGRESERVED="+to_string(rngReserved); //+" -D LOCALPHOTONSLEN="+to_string(localPhotonsLen);
+  string options = " -D DEBUGSIZE="+to_string(25) +
+    " -D ENDTIME="+to_string(15.7) +
+    " -D DIFFUSIVITY="+to_string(1.5);
   #ifdef DEBUG
   options += " -D DEBUG";
   #endif

@@ -228,7 +228,7 @@ float3 nextGfloat3(mwc64x_state_t *s){
   return (float3)(nextGaussVec2(s), nextGaussVec2(s).x);
 }
 
-#define DIFFUSIVITY 1.0
+/* #define DIFFUSIVITY 1.0 */
 float timestep(float sigma){
   return pown(sigma, 2) / (6*DIFFUSIVITY);
 }
@@ -248,12 +248,12 @@ float detectionIntensity(float3 position){ //detection volume 200nm x 200nm x 2.
 void wrap(float3 *position){ // +- 1 maps to +- 10um
 }
 
-#define RNGRESERVED 10000
-#define LOCALSIZE 1000
-#define GLOBALSIZE 1000
-#define PHOTONSPERINTENSITYPERTIME 2.0
-#define ENDTIME 10.0
-#define DEBUGSIZE 20
+#define RNGRESERVED 10000 
+#define LOCALSIZE 1000 
+#define GLOBALSIZE 1000 
+#define PHOTONSPERINTENSITYPERTIME 2.0 
+/* #define ENDTIME 10.0 */
+/* #define DEBUGSIZE 20 */
 
 __kernel void hello(__global uint* dropletsRemaining,
 		    __global ulong* globalBuffer, //write only (thinking about mapping to host mem)
