@@ -21,7 +21,7 @@ using namespace std;
 //   simulation.run();
 // }
 
-void Simulation::init(string source, int rngReserved){
+void Simulation::init(string source, string options){
   if(initialized)
     return;
   initialized = true;
@@ -49,12 +49,6 @@ void Simulation::init(string source, int rngReserved){
   program = cl::Program(context, sources, &err);
   assert(err == CL_SUCCESS);
 
-  string options = " -D DEBUGSIZE="+to_string(25) +
-    " -D ENDTIME="+to_string(15.7) +
-    " -D DIFFUSIVITY="+to_string(1.5);
-  #ifdef DEBUG
-  options += " -D DEBUG";
-  #endif
   cout << "program.cl build options: " << options << endl;
   err = program.build(devices, options.c_str());
   

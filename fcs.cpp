@@ -65,9 +65,17 @@ tuple<ulong*, uint, long, float*> FCS::run(uint totalDroplets,
 				  float photonsPerIntensityPerTime,
 				  uint globalBufferSizePerWorkgroup,
 				  uint localBufferSizePerWorkitem){
+  string options = " -D DEBUGSIZE="+to_string(25) +
+    " -D ENDTIME="+to_string(endTime) +
+    " -D DIFFUSIVITY="+to_string(1.5) +
+    " -D RNGRESERVED="+to_string(1000) +
+    " -D LOCALSIZE="+to_string(localBufferSizePerWorkitem) +
+    " -D GLOBALSIZE="+to_string(globalBufferSizePerWorkgroup) +
+    " -D PHOTONSPERINTENSITYPERTIME="+to_string(photonsPerIntensityPerTime);
   #ifdef DEBUG
-  printf("FCS#run()\n");
+  options += " -D DEBUG";
   #endif
+  Simulation::init(readFile("program.cl"), options);
 
   cl::Event kernelEvent;
   cl_int err;

@@ -248,10 +248,10 @@ float detectionIntensity(float3 position){ //detection volume 200nm x 200nm x 2.
 void wrap(float3 *position){ // +- 1 maps to +- 10um
 }
 
-#define RNGRESERVED 10000 
-#define LOCALSIZE 1000 
-#define GLOBALSIZE 1000 
-#define PHOTONSPERINTENSITYPERTIME 2.0 
+/* #define RNGRESERVED 10000  */
+/* #define LOCALSIZE 1000  */
+/* #define GLOBALSIZE 1000  */
+/* #define PHOTONSPERINTENSITYPERTIME 2.0  */
 /* #define ENDTIME 10.0 */
 /* #define DEBUGSIZE 20 */
 
@@ -302,6 +302,7 @@ __kernel void hello(__global uint* dropletsRemaining,
     debug[9] = CDFI_j;
     debug[10] = dT_j;
     vstore3(position, 0, debug+11);
+    int position_log_index = 1;
     #endif
     #endif
     
@@ -312,14 +313,12 @@ __kernel void hello(__global uint* dropletsRemaining,
 	CDFI_j += intensity*dT_j;
 	
 	dT_j = timestep(max_sigma(position));
-	position += sigma(dT_j)*nextGfloat3(&rng);
+	position = T_j/ENDTIME * (float3)(2, 0, 0) - (float3)(1, 0, 0); // += sigma(dT_j)*nextGfloat3(&rng);
 	intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
 	wrap(&position);
 	#ifdef DEBUG
-        #ifndef DEBUG_SINGLETON_1
-        #define DEBUG_SINGLETON_1
-	debug[14] =  CDFI_j + intensity*dT_j;
-	#endif
+	vstore3(position, position_log_index, debug+11);
+	position_log_index ++;
 	#endif
       }
 

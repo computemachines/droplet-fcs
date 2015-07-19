@@ -14,7 +14,7 @@ protected:
   cl::CommandQueue queue;
   cl::Kernel kernel;
 public:
-  void init(std::string source, int rngReserved);
+  void init(std::string source, std::string options);
 };
 
 
