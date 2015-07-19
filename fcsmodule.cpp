@@ -25,7 +25,6 @@ extern "C" {
 
     
 
-    fcs.init(rngReserved);
     tuple<ulong*, uint, long, float*> results = fcs.run();
     ulong* data = get<0>(results);
     long time = get<2>(results);

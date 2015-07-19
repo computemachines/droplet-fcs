@@ -15,7 +15,6 @@ using namespace std;
 class FCS : public Simulation{
   cl::Buffer timestamps;
 public:
-  void init(int rngReserved=10000);
   tuple<ulong*, uint, long, float*> run(uint totalDroplets=1,
 			       uint workgroups=1,
 			       uint workitems=1,

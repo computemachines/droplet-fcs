@@ -29,7 +29,6 @@ using namespace std;
 
 int main(int argc, char** argv){
   FCS fcs;
-  fcs.init();
   std::tuple<ulong*, uint, long, float*> results = fcs.run();
   ulong *data = get<0>(results);
   printf("results (length: %d) {", get<1>(results));
@@ -59,13 +58,6 @@ int main(int argc, char** argv){
   #endif
 }
 
-
-void FCS::init(int rngReserved){
-  Simulation::init(readFile("program.cl"), rngReserved);
-}
-
-// metaBuffer is in global mem but owned by workgroup
-// buffer is in local mem but owned by workitem
 tuple<ulong*, uint, long, float*> FCS::run(uint totalDroplets,
 				  uint workgroups,
 				  uint workitems,
