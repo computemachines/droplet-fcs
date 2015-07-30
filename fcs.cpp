@@ -28,6 +28,7 @@ const string readFile(const string& filename){
 using namespace std;
 
 int main(int argc, char** argv){
+  printf("!! DEPRECATED !!\nDo not run. Use only as a python module.\n\n"); 
   FCS fcs;
   std::tuple<ulong*, uint, long, char*, uint> results = fcs.run();
   ulong *data = get<0>(results);
