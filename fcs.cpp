@@ -73,7 +73,7 @@ tuple<ulong*, uint, long, float*> FCS::run(uint totalDroplets,
     " -D GLOBALSIZE="+to_string(globalBufferSizePerWorkgroup) +
     " -D PHOTONSPERINTENSITYPERTIME="+to_string(photonsPerIntensityPerTime);
   #ifdef DEBUG
-  options += " -D DEBUG";
+  options += " -D DEBUG -D DEBUG_SIZE=" + to_string(DEBUG_SIZE);
   #endif
   Simulation::init(readFile("program.cl"), options);
 

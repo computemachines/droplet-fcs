@@ -253,7 +253,7 @@ void wrap(float3 *position){ // +- 1 maps to +- 10um
 /* #define GLOBALSIZE 1000  */
 /* #define PHOTONSPERINTENSITYPERTIME 2.0  */
 /* #define ENDTIME 10.0 */
-/* #define DEBUGSIZE 20 */
+/* #define DEBUG_SIZE 20 */
 
 __kernel void hello(__global uint* dropletsRemaining,
 		    __global ulong* globalBuffer, //write only (thinking about mapping to host mem)
@@ -272,8 +272,6 @@ __kernel void hello(__global uint* dropletsRemaining,
   }
   
   #ifdef DEBUG
-  for(int i = 0; i < DEBUGSIZE; i++)
-    debug[i] = 0;
   debug[0] = *dropletsRemaining;
   debug[1] = RNGRESERVED;
   debug[2] = LOCALSIZE;
@@ -281,6 +279,8 @@ __kernel void hello(__global uint* dropletsRemaining,
   debug[4] = PHOTONSPERINTENSITYPERTIME;
   debug[5] = ENDTIME;
   debug[6] = DEBUGSIZE;
+  for(int i = 0; i < DEBUG_SIZE; i++) 
+    debug[i] = 0; 
   #endif
   mwc64x_state_t rng; 
   MWC64X_SeedStreams(&rng, 0, RNGRESERVED);
