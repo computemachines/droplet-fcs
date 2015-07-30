@@ -25,12 +25,22 @@ extern "C" {
 
     
 
-    tuple<ulong*, uint, long, float*> results = fcs.run();
+    tuple<ulong*, uint, long, char*, uint> results = fcs.run();
     ulong* data = get<0>(results);
     long time = get<2>(results);
-    npy_intp dims = {get<1>(results)};
-    PyObject * numpy = PyArray_SimpleNewFromData(1, &dims, NPY_ULONG, data);
+    npy_intp photons = {get<1>(results)};
+    PyObject * numpy = PyArray_SimpleNewFromData(1, &photons, NPY_ULONG, data);
+    int debug_length = (int)get<4>(results);
+    char * debug = get<3>(results);
+    #ifdef DEBUG
+    printf("debug out(%d): {", get<3>(results));
+    for(int i = 0; i < debug_length; i++)
+      printf("%d ", debug[i]);
+    printf("}\n");
+    PyObject * ret = Py_BuildValue("(Ols#)", numpy, time, get<3>(results), (int)get<4>(results));
+    #else
     PyObject * ret = Py_BuildValue("(Ol)", numpy, time);
+    #endif
     Py_INCREF(ret);
     return ret;
   }

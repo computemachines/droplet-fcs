@@ -29,14 +29,14 @@ using namespace std;
 
 int main(int argc, char** argv){
   FCS fcs;
-  std::tuple<ulong*, uint, long, float*> results = fcs.run();
+  std::tuple<ulong*, uint, long, char*, uint> results = fcs.run();
   ulong *data = get<0>(results);
   printf("results (length: %d) {", get<1>(results));
   for(uint i = 0; i < get<1>(results); i++)
     printf("%lu, ", data[i]);
   printf("}\n");
   #ifdef DEBUG
-  float *debug = get<3>(results);
+  float *debug = (float *) get<3>(results);
   string symbols[DEBUG_SIZE] = {"dropletsRemaining",
 				"RNGRESERVED",
 				"LOCALSIZE",
@@ -58,14 +58,14 @@ int main(int argc, char** argv){
   #endif
 }
 
-tuple<ulong*, uint, long, float*> FCS::run(uint totalDroplets,
-				  uint workgroups,
-				  uint workitems,
-				  float endTime,
-				  float photonsPerIntensityPerTime,
-				  uint globalBufferSizePerWorkgroup,
-				  uint localBufferSizePerWorkitem){
-  string options = " -D DEBUGSIZE="+to_string(25) +
+tuple<ulong*, uint, long, char*, uint> FCS::run(uint totalDroplets,
+						 uint workgroups,
+						 uint workitems,
+						 float endTime,
+						 float photonsPerIntensityPerTime,
+						 uint globalBufferSizePerWorkgroup,
+						 uint localBufferSizePerWorkitem){
+  string options = 
     " -D ENDTIME="+to_string(endTime) +
     " -D DIFFUSIVITY="+to_string(1.5) +
     " -D RNGRESERVED="+to_string(1000) +
@@ -90,7 +90,7 @@ tuple<ulong*, uint, long, float*> FCS::run(uint totalDroplets,
 					    sizeof(cl_uint), &totalDroplets, &err);
   #ifdef DEBUG
   assert(err == CL_SUCCESS);
-  cl::Buffer debug = cl::Buffer(context, CL_MEM_READ_WRITE, DEBUG_SIZE*sizeof(float),
+  cl::Buffer debug = cl::Buffer(context, CL_MEM_READ_WRITE, DEBUG_SIZE,
 				NULL, &err);
   #endif
   if(err != CL_SUCCESS)
@@ -128,15 +128,15 @@ tuple<ulong*, uint, long, float*> FCS::run(uint totalDroplets,
   queue.enqueueReadBuffer(globalBuffer, CL_TRUE, 0,
 			  workgroups*globalBufferSizePerWorkgroup*sizeof(cl_ulong), buffer);
   #ifdef DEBUG
-  float * debugData = (float *)malloc(DEBUG_SIZE*sizeof(float));
-  queue.enqueueReadBuffer(debug, CL_TRUE, 0, DEBUG_SIZE*sizeof(float), debugData);
+  float * debugData = (float *)malloc(DEBUG_SIZE);
+  queue.enqueueReadBuffer(debug, CL_TRUE, 0, DEBUG_SIZE, debugData);
   #endif
 
   queue.finish();
 
   #ifdef DEBUG
-  return make_tuple(buffer, (uint)(workgroups*globalBufferSizePerWorkgroup), aend-astart, debugData);
+  return make_tuple(buffer, (uint)(workgroups*globalBufferSizePerWorkgroup), aend-astart, (char *)debugData, DEBUG_SIZE);
   #else
-  return make_tuple(buffer, (uint)(workgroups*globalBufferSizePerWorkgroup), (long)0, (float *) NULL);
+  return make_tuple(buffer, (uint)(workgroups*globalBufferSizePerWorkgroup), (long)0, (char  *) NULL, 0);
   #endif
 }

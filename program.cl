@@ -259,7 +259,7 @@ __kernel void hello(__global uint* dropletsRemaining,
 		    __global ulong* globalBuffer, //write only (thinking about mapping to host mem)
 		    __local ulong* localBuffer 
                     #ifdef DEBUG
-		    , __global float* debug
+		    , __global char* debug
 		    #endif
 		    ){
   int n = get_global_id(0);
@@ -267,23 +267,33 @@ __kernel void hello(__global uint* dropletsRemaining,
   __global int *globalMutex;
   __local int *localMutex;
 
-  for(int i = 0; i < 1000; i++){
+  for(int i = 0; i < GLOBALSIZE; i++){
     globalBuffer[i] = 0;
   }
   
   #ifdef DEBUG
-  debug[0] = *dropletsRemaining;
-  debug[1] = RNGRESERVED;
-  debug[2] = LOCALSIZE;
-  debug[3] = GLOBALSIZE;
-  debug[4] = PHOTONSPERINTENSITYPERTIME;
-  debug[5] = ENDTIME;
-  debug[6] = DEBUGSIZE;
   for(int i = 0; i < DEBUG_SIZE; i++) 
     debug[i] = 0; 
+  /* debug[0] = *dropletsRemaining; */
+  /* debug[1] = RNGRESERVED; */
+  /* debug[2] = LOCALSIZE; */
+  /* debug[3] = GLOBALSIZE; */
+  /* debug[4] = PHOTONSPERINTENSITYPERTIME; */
+  /* debug[5] = ENDTIME; */
+  /* debug[6] = DEBUG_SIZE; */
+
+
+  debug[0] = ']';
+  debug[1] = 'K';
+  debug[2] = 10;
+  debug[3] = 'a';
+  debug[4] = 'K';
+  debug[5] = 14;
+  debug[6] = 'a';
+  debug[7] = '.';
   #endif
   mwc64x_state_t rng; 
-  MWC64X_SeedStreams(&rng, 0, RNGRESERVED);
+  MWC64X_SeedStreams(&rng, 100340, RNGRESERVED);
 
   __local uint index;
 
@@ -297,11 +307,11 @@ __kernel void hello(__global uint* dropletsRemaining,
     #ifdef DEBUG
     #ifndef DEBUG_SINGLETON_0
     #define DEBUG_SINGLETON_0
-    debug[7] = intensity;
-    debug[8] = CDFphoton_i;
-    debug[9] = CDFI_j;
-    debug[10] = dT_j;
-    vstore3(position, 0, debug+11);
+    /* debug[7] = intensity; */
+    /* debug[8] = CDFphoton_i; */
+    /* debug[9] = CDFI_j; */
+    /* debug[10] = dT_j; */
+    /* vstore3(position, 0, debug+11); */
     int position_log_index = 1;
     #endif
     #endif
@@ -317,8 +327,8 @@ __kernel void hello(__global uint* dropletsRemaining,
 	intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
 	wrap(&position);
 	#ifdef DEBUG
-	vstore3(position, position_log_index, debug+11);
-	position_log_index ++;
+	/* vstore3(position, position_log_index, debug+11); */
+	/* position_log_index ++; */
 	#endif
       }
 
