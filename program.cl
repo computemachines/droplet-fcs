@@ -268,7 +268,6 @@ __kernel void hello(__global uint* dropletsRemaining,
 		    , __global char* debug
 		    #endif
 		    ){
-  #line 272 "program.cl"
   int n = get_global_id(0);
   int m = get_local_id(0);
   __global int *globalMutex;
@@ -279,40 +278,13 @@ __kernel void hello(__global uint* dropletsRemaining,
   }
   
   #ifdef DEBUG
-  for(int i = 0; i < DEBUG_SIZE; i++) 
-    debug[i] = 0;
 
-   pkl_init(debug);
-   /* _post_to_debug_(debug, 'K'); */
-   /* _post_to_debug_(debug, 31); */
-   /* _post_to_debug_(debug, 'a'); */
-   pkl_log_char(debug, 77);
-   pkl_log_char(debug, 74);
-   pkl_log_char(debug, 170);
-   pkl_close(debug);
+  pkl_init(debug);
+  pkl_log_char(debug, 77);
+  pkl_log_char(debug, 74);
+  pkl_log_char(debug, 170);
+  pkl_close(debug);
 
-  /* {uint __debug_pos__ = 0; debug[__debug_pos__] = ']';} */
-  /* __debug_pos__ ++; */
-  /* debug[__debug_pos__] = '.'; */
-  
-  /* debug[0] = *dropletsRemaining; */
-  /* debug[1] = RNGRESERVED; */
-  /* debug[2] = LOCALSIZE; */
-  /* debug[3] = GLOBALSIZE; */
-  /* debug[4] = PHOTONSPERINTENSITYPERTIME; */
-  /* debug[5] = ENDTIME; */
-  /* debug[6] = DEBUG_SIZE; */
-
-
-  /* debug[0] = ']'; */
-  /* debug[1] = 'K'; */
-  /* debug[2] = 10; */
-  /* debug[3] = 'a'; */
-  /* debug[4] = 'K'; */
-  /* debug[5] = 14; */
-  /* debug[6] = 'a'; */
-  /* printf("TESTING"); */
-  /* debug[7] = '.'; */
   #endif
   mwc64x_state_t rng; 
   MWC64X_SeedStreams(&rng, 100340, RNGRESERVED);
@@ -325,18 +297,6 @@ __kernel void hello(__global uint* dropletsRemaining,
     float T_j = 0, dT_j = timestep(max_sigma(position));
     float CDFI_j = 0;
     float photon_i = 0, CDFphoton_i = -log(nextUfloat(&rng));
-
-    #ifdef DEBUG
-    #ifndef DEBUG_SINGLETON_0
-    #define DEBUG_SINGLETON_0
-    /* debug[7] = intensity; */
-    /* debug[8] = CDFphoton_i; */
-    /* debug[9] = CDFI_j; */
-    /* debug[10] = dT_j; */
-    /* vstore3(position, 0, debug+11); */
-    int position_log_index = 1;
-    #endif
-    #endif
     
     do{
       if(CDFphoton_i > CDFI_j){
@@ -348,10 +308,6 @@ __kernel void hello(__global uint* dropletsRemaining,
 	position = T_j/ENDTIME * (float3)(2, 0, 0) - (float3)(1, 0, 0); // += sigma(dT_j)*nextGfloat3(&rng);
 	intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
 	wrap(&position);
-	#ifdef DEBUG
-	/* vstore3(position, position_log_index, debug+11); */
-	/* position_log_index ++; */
-	#endif
       }
 
       if(CDFphoton_i < CDFI_j + intensity*dT_j){
