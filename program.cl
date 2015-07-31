@@ -255,6 +255,12 @@ void wrap(float3 *position){ // +- 1 maps to +- 10um
 /* #define ENDTIME 10.0 */
 /* #define DEBUG_SIZE 20 */
 
+#define _post_to_debug_(D, C) D[__debug_pos__] = C, __debug_pos__ ++
+#define pkl_init(D) uint __debug_pos__ = 0; (_post_to_debug_(D, ']'))
+#define pkl_close(D) (_post_to_debug_(D, '.'))
+#define pkl_log_char(D, C) (_post_to_debug_(D, 'K'), _post_to_debug_(D, C), \
+		    _post_to_debug_(D, 'a'))
+
 __kernel void hello(__global uint* dropletsRemaining,
 		    __global ulong* globalBuffer, //write only (thinking about mapping to host mem)
 		    __local ulong* localBuffer 
@@ -262,6 +268,7 @@ __kernel void hello(__global uint* dropletsRemaining,
 		    , __global char* debug
 		    #endif
 		    ){
+  #line 272 "program.cl"
   int n = get_global_id(0);
   int m = get_local_id(0);
   __global int *globalMutex;
@@ -273,7 +280,21 @@ __kernel void hello(__global uint* dropletsRemaining,
   
   #ifdef DEBUG
   for(int i = 0; i < DEBUG_SIZE; i++) 
-    debug[i] = 0; 
+    debug[i] = 0;
+
+   pkl_init(debug);
+   /* _post_to_debug_(debug, 'K'); */
+   /* _post_to_debug_(debug, 31); */
+   /* _post_to_debug_(debug, 'a'); */
+   pkl_log_char(debug, 77);
+   pkl_log_char(debug, 74);
+   pkl_log_char(debug, 170);
+   pkl_close(debug);
+
+  /* {uint __debug_pos__ = 0; debug[__debug_pos__] = ']';} */
+  /* __debug_pos__ ++; */
+  /* debug[__debug_pos__] = '.'; */
+  
   /* debug[0] = *dropletsRemaining; */
   /* debug[1] = RNGRESERVED; */
   /* debug[2] = LOCALSIZE; */
@@ -283,14 +304,15 @@ __kernel void hello(__global uint* dropletsRemaining,
   /* debug[6] = DEBUG_SIZE; */
 
 
-  debug[0] = ']';
-  debug[1] = 'K';
-  debug[2] = 10;
-  debug[3] = 'a';
-  debug[4] = 'K';
-  debug[5] = 14;
-  debug[6] = 'a';
-  debug[7] = '.';
+  /* debug[0] = ']'; */
+  /* debug[1] = 'K'; */
+  /* debug[2] = 10; */
+  /* debug[3] = 'a'; */
+  /* debug[4] = 'K'; */
+  /* debug[5] = 14; */
+  /* debug[6] = 'a'; */
+  /* printf("TESTING"); */
+  /* debug[7] = '.'; */
   #endif
   mwc64x_state_t rng; 
   MWC64X_SeedStreams(&rng, 100340, RNGRESERVED);
