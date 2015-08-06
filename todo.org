@@ -1,6 +1,0 @@
-* TODO Make buffer sizes accessible from api
-** TODO Add args to python and c++ function
-** TODO Update documentation
-* TODO Add special results branch to hold statistics and plots of the results
-* TODO Convert kernel args to #defines where possible
-* TODO Document c++ components

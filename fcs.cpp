@@ -128,8 +128,9 @@ tuple<ulong*, uint, long, char*, uint> FCS::run(uint totalDroplets,
   ulong * buffer = (ulong *)malloc(workgroups*globalBufferSizePerWorkgroup*sizeof(cl_ulong));
   queue.enqueueReadBuffer(globalBuffer, CL_TRUE, 0,
 			  workgroups*globalBufferSizePerWorkgroup*sizeof(cl_ulong), buffer);
+  printf("photons: %d, buffersize: %d\n", buffer[0], workgroups*globalBufferSizePerWorkgroup);
   #ifdef DEBUG
-  float * debugData = (float *)malloc(DEBUG_SIZE);
+  char * debugData = (char *)malloc(DEBUG_SIZE);
   queue.enqueueReadBuffer(debug, CL_TRUE, 0, DEBUG_SIZE, debugData);
   #endif
 

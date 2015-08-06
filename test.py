@@ -6,5 +6,7 @@ import fcs
 
 out = fcs.fcs()
 
-plt.hist(out[0], bins=100)
+plt.hist(out[0], bins=500)
 #plt.show()
+
+debug = pickle.loads(out[2])

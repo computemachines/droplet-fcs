@@ -18,9 +18,9 @@ public:
   tuple<ulong*, uint, long, char*, uint> run(uint totalDroplets=1,
 					      uint workgroups=1,
 					      uint workitems=1,
-					      float endTime=10.0,
-					      float photonsPerIntensityPerTime=1.0,
-					      uint globalBufferSizePerWorkgroup=1000,
+					      float endTime=5.0,
+					      float photonsPerIntensityPerTime=10000.0,
+					      uint globalBufferSizePerWorkgroup=100000,
 					      uint localBufferSizePerWorkitem=1000);
 };
 

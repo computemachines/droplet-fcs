@@ -256,10 +256,22 @@ void wrap(float3 *position){ // +- 1 maps to +- 10um
 /* #define DEBUG_SIZE 20 */
 
 #define _post_to_debug_(D, C) D[__debug_pos__] = C, __debug_pos__ ++
-#define pkl_init(D) uint __debug_pos__ = 0; (_post_to_debug_(D, ']'))
-#define pkl_close(D) (_post_to_debug_(D, '.'))
-#define pkl_log_char(D, C) (_post_to_debug_(D, 'K'), _post_to_debug_(D, C), \
-		    _post_to_debug_(D, 'a'))
+/* #define _post_multibyte_to_debug(_D, C, T)	\ */
+/*   *((T *)(&D[__debug_pos__])) = C, __debug_pos__ += sizeof(T) */
+#define _post_multibyte_to_debug_(D, C, N) for (int i=0; i < N; i++) { (_post_to_debug_(D, C >> 8*i)); }
+#define pkl_init(D) uint __debug_pos__ = 0
+#define pkl_end(D) (_post_to_debug_(D, '.'))
+#define _mark_(D) (_post_to_debug_(D, '('))
+#define LIST 'l'
+#define DICT 'd'
+#define TUPLE 't'
+#define pkl_open(D) _mark_(D)
+#define pkl_close(D, T) (_post_to_debug_(D, T))
+#define pkl_log_char(D, C) (_post_to_debug_(D, 'K'), _post_to_debug_(D, C))
+#define pkl_log_int(D, I) _post_to_debug_(D, 'J'); _post_multibyte_to_debug_(D, I, 4)
+#define pkl_log_float(D, F) _post_to_debug_(D, 'G'); _post_multibyte_to_debug_(debug, F, 4) ; _post_multibyte_to_debug_(D, 0, 4)
+#define pkl_log_long(D, L) _post_to_debug_(D, '\x8a'); _post_to_debug_(D, 0x08); _post_multibyte_to_debug_(D, L, 8)
+/* #define pkl_log_float(D, F) (_post_to_debug_(D, 'G'), _post_multibyte_to_debug_(D, F, float)) */
 
 __kernel void hello(__global uint* dropletsRemaining,
 		    __global ulong* globalBuffer, //write only (thinking about mapping to host mem)
@@ -279,11 +291,27 @@ __kernel void hello(__global uint* dropletsRemaining,
   
   #ifdef DEBUG
 
+  uint fourbytes = 0x12345678;
+
+  int test = -10;
+  
   pkl_init(debug);
-  pkl_log_char(debug, 77);
-  pkl_log_char(debug, 74);
-  pkl_log_char(debug, 170);
-  pkl_close(debug);
+  pkl_open(debug);
+  /* pkl_open(debug);  */
+  /* pkl_log_char(debug, 77);  */
+  /* pkl_close(debug, LIST);  */
+  /* pkl_log_char(debug, 170); */
+  /* pkl_log_int(debug, fourbytes); */
+  /* pkl_log_int(debug, -12); */
+  /* long eightbytes =              0x7123456789ABCDEF; */
+  /* float frac = -1.05; */
+  /* int exp_sign = as_int(frac) &  0xFF800000; */
+  /* _post_to_debug_(debug, 'G'); // '\x8a' */
+  /* /\* _post_to_debug_(debug, 0x08); *\/ */
+  /* _post_multibyte_to_debug_(debug, exp_sign, 4); */
+  /* _post_multibyte_to_debug_(debug, 0, 4); */
+
+
 
   #endif
   mwc64x_state_t rng; 
@@ -321,4 +349,11 @@ __kernel void hello(__global uint* dropletsRemaining,
       }
     }while(photon_i < ENDTIME);
   }
+
+  globalBuffer[0] = index-1;
+  
+  #ifdef DEBUG
+  pkl_close(debug, LIST);
+  pkl_end(debug);
+  #endif
 }
