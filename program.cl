@@ -379,6 +379,10 @@ __kernel void hello(__global uint* dropletsRemaining,
     #endif
   }
 
+  //this is a hack. for some reason index=0 -> 0 droplets but
+  // index=n -> (n-1) droplets for n>1
+  if(index==0)
+    index ++;
   globalBuffer[0] = index-1;
   
   #ifdef DEBUG
