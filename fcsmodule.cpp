@@ -28,8 +28,11 @@ extern "C" {
     tuple<ulong*, uint, long, char*, uint> results = fcs.run();
     ulong* data = get<0>(results);
     long time = get<2>(results);
-    npy_intp photons = {get<1>(results)};
-    PyObject * numpy = PyArray_SimpleNewFromData(1, &photons, NPY_ULONG, data);
+    ulong bufferSize = get<1>(results);
+    ulong numPhotons = data[0];
+    assert(numPhotons < bufferSize);
+    npy_intp photonsShape = {numPhotons};
+    PyObject * numpy = PyArray_SimpleNewFromData(1, &photonsShape, NPY_ULONG, data+1);
     int debug_length = (int)get<4>(results);
     char * debug = get<3>(results);
     #ifdef DEBUG
