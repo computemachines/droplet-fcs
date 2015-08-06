@@ -246,6 +246,7 @@ float detectionIntensity(float3 position){ //detection volume 200nm x 200nm x 2.
 }
 
 void wrap(float3 *position){ // +- 1 maps to +- 10um
+  *position = fmod((*position)+(float3)(.5), (float3)(1))-(float3)(.5);
 }
 
 /* #define RNGRESERVED 10000  */
@@ -319,13 +320,21 @@ __kernel void hello(__global uint* dropletsRemaining,
 
   __local uint index;
 
+  #ifdef DEBUG
+  pkl_log_int(debug, *dropletsRemaining);
+  #endif
+
   while(atomic_dec(dropletsRemaining)>0){
-    float3 position = nextUfloat3(&rng);
+    float3 position = (float3)(-1, 0, 0); //nextUfloat3(&rng);
     float intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
     float T_j = 0, dT_j = timestep(max_sigma(position));
     float CDFI_j = 0;
     float photon_i = 0, CDFphoton_i = -log(nextUfloat(&rng));
-    
+    #ifdef DEBUG
+    uint steps = 0;
+    pkl_log_int(debug, (int)(CDFphoton_i*1e6));
+    pkl_open(debug);
+    #endif
     do{
       if(CDFphoton_i > CDFI_j){
 	// step t_j
@@ -333,9 +342,22 @@ __kernel void hello(__global uint* dropletsRemaining,
 	CDFI_j += intensity*dT_j;
 	
 	dT_j = timestep(max_sigma(position));
-	position = T_j/ENDTIME * (float3)(2, 0, 0) - (float3)(1, 0, 0); // += sigma(dT_j)*nextGfloat3(&rng);
+	printf("%f, ",position.x);
+	position += (float3)(2, 0, 0)/(300); // += sigma(dT_j)*nextGfloat3(&rng);
 	intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
-	wrap(&position);
+	wrap(&position); 
+	#ifdef DEBUG
+	pkl_log_int(debug, (int)(T_j*1e6));
+	pkl_open(debug);
+	pkl_open(debug);
+	pkl_log_int(debug, (int)(position.x*1e6));
+	pkl_log_int(debug, (int)(position.y*1e6));
+	pkl_log_int(debug, (int)(position.z*1e6));
+	pkl_close(debug, TUPLE);
+	pkl_log_int(debug, (int)(intensity*1e6));
+	pkl_close(debug, LIST);
+	steps ++;
+	#endif
       }
 
       if(CDFphoton_i < CDFI_j + intensity*dT_j){
@@ -343,11 +365,18 @@ __kernel void hello(__global uint* dropletsRemaining,
 	globalBuffer[index] = (ulong)(photon_i*1e9);
 	index ++;
 	CDFphoton_i -= log(nextUfloat(&rng));
+	/* #ifdef DEBUG */
+	/* pkl_log_int(debug, index); */
+	/* #endif */
       }else{
 	CDFI_j = CDFI_j + intensity*dT_j;
 	photon_i = T_j; // do not save to buffer. this is only to prevent endless do-while
       }
     }while(photon_i < ENDTIME);
+    #ifdef DEBUG
+    pkl_close(debug, DICT);
+    pkl_log_int(debug, steps);
+    #endif
   }
 
   globalBuffer[0] = index-1;

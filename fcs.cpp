@@ -14,7 +14,7 @@
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
-#define DEBUG_SIZE 20
+#define DEBUG_SIZE 10000
 
 const string readFile(const string& filename){
   ifstream sourcefile(filename);
