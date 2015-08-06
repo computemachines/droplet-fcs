@@ -29,34 +29,34 @@ using namespace std;
 
 int main(int argc, char** argv){
   printf("!! DEPRECATED !!\nDo not run. Use only as a python module.\n\n"); 
-  FCS fcs;
-  std::tuple<ulong*, uint, long, char*, uint> results = fcs.run();
-  ulong *data = get<0>(results);
-  printf("results (length: %d) {", get<1>(results));
-  for(uint i = 0; i < get<1>(results); i++)
-    printf("%lu, ", data[i]);
-  printf("}\n");
-  #ifdef DEBUG
-  float *debug = (float *) get<3>(results);
-  string symbols[DEBUG_SIZE] = {"dropletsRemaining",
-				"RNGRESERVED",
-				"LOCALSIZE",
-				"GLOBALSIZE",
-				"PHOTONSPERINTENSITYPERTIME",
-				"ENDTIME",
-				"DEBUGSIZE",
-				"intensity_0",
-				"CDFphoton_0",
-				"CDFI_0",
-				"dT_0",
-				"position_0.x",
-				"position_0.y",
-				"position_0.z"};
-  printf("debug (length: %d) {\n", DEBUG_SIZE);
-  for(int i = 0; i < DEBUG_SIZE; i++)
-    printf("%s : %6.4f,\n", symbols[i].c_str(), debug[i]);
-  printf("}\n");
-  #endif
+  // FCS fcs;
+  // std::tuple<ulong*, uint, long, char*, uint> results = fcs.run();
+  // ulong *data = get<0>(results);
+  // printf("results (length: %d) {", get<1>(results));
+  // for(uint i = 0; i < get<1>(results); i++)
+  //   printf("%lu, ", data[i]);
+  // printf("}\n");
+  // #ifdef DEBUG
+  // float *debug = (float *) get<3>(results);
+  // string symbols[DEBUG_SIZE] = {"dropletsRemaining",
+  // 				"RNGRESERVED",
+  // 				"LOCALSIZE",
+  // 				"GLOBALSIZE",
+  // 				"PHOTONSPERINTENSITYPERTIME",
+  // 				"ENDTIME",
+  // 				"DEBUGSIZE",
+  // 				"intensity_0",
+  // 				"CDFphoton_0",
+  // 				"CDFI_0",
+  // 				"dT_0",
+  // 				"position_0.x",
+  // 				"position_0.y",
+  // 				"position_0.z"};
+  // printf("debug (length: %d) {\n", DEBUG_SIZE);
+  // for(int i = 0; i < DEBUG_SIZE; i++)
+  //   printf("%s : %6.4f,\n", symbols[i].c_str(), debug[i]);
+  // printf("}\n");
+  // #endif
 }
 
 tuple<ulong*, uint, long, char*, uint> FCS::run(uint totalDroplets,
