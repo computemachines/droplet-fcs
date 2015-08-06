@@ -1,62 +1,73 @@
 #include "Python.h"
-
 #include <tuple>
-#include "numpy/arrayobject.h"
+
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include "numpy/arrayobject.h"
 
 #include "fcs.cpp"
-
-#define NO_PROFILING 0
-#define WITH_PROFILING 1
-#define PROFILING_ONLY 2
+#include "simulation.hpp"
 
 extern "C" {
-  
   static PyObject * fcs_fcs(PyObject *self, PyObject *args){
+    physical_parameters physicalParameters;
+    simulation_parameters simulationParameters;
+    physicalParameters.totalDroplets = 1;
+    physicalParameters.endTime = 1.0;
+    physicalParameters.photonsPerIntensityPerTime = 1000.0;
+    physicalParameters.diffusivity = 1.5;
+    simulationParameters.workgroups = 1;
+    simulationParameters.workitems = 1;
+    simulationParameters.globalBufferSizePerWorkgroup = 100000;
+    simulationParameters.localBufferSizePerWorkitem = 1000;
+    simulationParameters.rngReserved = 1000;
+    simulationParameters.debugSize = 1000;
+
+    PyArg_ParseTuple(args, "|ifffiiiiii",
+		     &physicalParameters.totalDroplets,
+		     &physicalParameters.endTime,
+		     &physicalParameters.photonsPerIntensityPerTime,
+		     &physicalParameters.diffusivity,
+		     &simulationParameters.workgroups,
+		     &simulationParameters.workitems,
+		     &simulationParameters.globalBufferSizePerWorkgroup,
+		     &simulationParameters.localBufferSizePerWorkitem,
+		     &simulationParameters.rngReserved,
+		     &simulationParameters.debugSize);
+
     FCS fcs;
-    int totalDroplets, dropletsPerGroup, profilingOption, maxPhotons;
-    int rngReserved, localPhotonsLen;
-    float endTime, photonsPerIntensityPerTime;
-    
-    // PyArg_ParseTuple(args, "iiffii", &totalDroplets, &dropletsPerGroup,
-    // 		     &endTime, &photonsPerIntensityPerTime, &profilingOption,
-    // 		     &maxPhotons, &rngReserved, &localPhotonsLen);
+    FCS_out results = fcs.run(physicalParameters, simulationParameters);
 
+    ulong *photons = get<0>(results);
     
-
-    tuple<ulong*, uint, long, char*, uint> results = fcs.run();
-    ulong* data = get<0>(results);
-    long time = get<2>(results);
-    ulong bufferSize = get<1>(results);
-    ulong numPhotons = data[0];
-    assert(numPhotons < bufferSize);
-    npy_intp photonsShape = {numPhotons};
-    PyObject * numpy = PyArray_SimpleNewFromData(1, &photonsShape, NPY_ULONG, data+1);
-    int debug_length = (int)get<4>(results);
-    char * debug = get<3>(results);
-    #ifdef DEBUG
-    printf("debug out(%d): {", get<3>(results));
-    for(int i = 0; i < debug_length; i++)
-      printf("%d ", debug[i]);
-    printf("}\n");
-    PyObject * ret = Py_BuildValue("(Ols#)", numpy, time, get<3>(results), (int)get<4>(results));
+    npy_intp photonsNumpyShape = {get<1>(results)};
+    PyObject *photonsNumpy = PyArray_SimpleNewFromData(1, &photonsNumpyShape,
+						       NPY_ULONG, photons);
+    #ifndef DEBUG
+    return photonsNumpy;
     #else
-    PyObject * ret = Py_BuildValue("(Ol)", numpy, time);
-    #endif
+
+    long time = get<2>(results);
+
+    int debugSize = get<4>(results);
+    char *debug = get<3>(results);
+
+    PyObject * ret = Py_BuildValue("(Ols#)", photonsNumpy, time,
+				   get<3>(results), (int)get<4>(results));
     Py_INCREF(ret);
     return ret;
+    #endif
   }
 
   static PyMethodDef FCSMethods[] = {
     {"fcs", fcs_fcs, METH_VARARGS, "DOCSTRING blah"},
-    {NULL, NULL, 0, NULL}
+    {NULL, NULL, 0, NULL} // sentinel
   };
 
   PyMODINIT_FUNC initfcs(void){
     PyObject *m = Py_InitModule("fcs", FCSMethods);
-    PyModule_AddIntConstant(m, "NO_PROFILING", NO_PROFILING);
-    PyModule_AddIntConstant(m, "WITH_PROFILING", WITH_PROFILING);
-    PyModule_AddIntConstant(m, "PROFILING_ONLY", PROFILING_ONLY);
+    // PyModule_AddIntConstant(m, "NO_PROFILING", NO_PROFILING);
+    // PyModule_AddIntConstant(m, "WITH_PROFILING", WITH_PROFILING);
+    // PyModule_AddIntConstant(m, "PROFILING_ONLY", PROFILING_ONLY);
     import_array();
   }
 }

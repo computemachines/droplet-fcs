@@ -1,3 +1,11 @@
+// fcs.cpp
+// Provides FCS which extends Simulation class. FCS specifies
+// opencl program and preprocessor commands passed to
+// Simulation::init. Photons arrival times and debugging info
+// are passed back to caller.
+//
+// Called from fcsmodule.cpp
+
 #include "fcs.hpp"
 
 #include <iostream>
@@ -12,10 +20,14 @@
 
 #include "simulation.hpp"
 
+// This is supposed to silence a compiler warning, but I don't think
+// it is working
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
-#define DEBUG_SIZE 10000
 
+using namespace std;
+
+// TODO: move to utility library
 const string readFile(const string& filename){
   ifstream sourcefile(filename);
   const string source((istreambuf_iterator<char>(sourcefile)),
@@ -24,121 +36,114 @@ const string readFile(const string& filename){
   return source;
 }
 
-
-using namespace std;
-
-int main(int argc, char** argv){
-  printf("!! DEPRECATED !!\nDo not run. Use only as a python module.\n\n"); 
-  // FCS fcs;
-  // std::tuple<ulong*, uint, long, char*, uint> results = fcs.run();
-  // ulong *data = get<0>(results);
-  // printf("results (length: %d) {", get<1>(results));
-  // for(uint i = 0; i < get<1>(results); i++)
-  //   printf("%lu, ", data[i]);
-  // printf("}\n");
-  // #ifdef DEBUG
-  // float *debug = (float *) get<3>(results);
-  // string symbols[DEBUG_SIZE] = {"dropletsRemaining",
-  // 				"RNGRESERVED",
-  // 				"LOCALSIZE",
-  // 				"GLOBALSIZE",
-  // 				"PHOTONSPERINTENSITYPERTIME",
-  // 				"ENDTIME",
-  // 				"DEBUGSIZE",
-  // 				"intensity_0",
-  // 				"CDFphoton_0",
-  // 				"CDFI_0",
-  // 				"dT_0",
-  // 				"position_0.x",
-  // 				"position_0.y",
-  // 				"position_0.z"};
-  // printf("debug (length: %d) {\n", DEBUG_SIZE);
-  // for(int i = 0; i < DEBUG_SIZE; i++)
-  //   printf("%s : %6.4f,\n", symbols[i].c_str(), debug[i]);
-  // printf("}\n");
-  // #endif
+void FCS::init(std::string source, std::string options){
+  Simulation::init(source, options);
 }
 
-tuple<ulong*, uint, long, char*, uint> FCS::run(uint totalDroplets,
-						 uint workgroups,
-						 uint workitems,
-						 float endTime,
-						 float photonsPerIntensityPerTime,
-						 uint globalBufferSizePerWorkgroup,
-						 uint localBufferSizePerWorkitem){
+std::string FCS::buildOptions(physical_parameters physicalParameters,
+			      simulation_parameters simulationParameters){
   string options = 
-    " -D ENDTIME="+to_string(endTime) +
-    " -D DIFFUSIVITY="+to_string(1.5) +
-    " -D RNGRESERVED="+to_string(1000) +
-    " -D LOCALSIZE="+to_string(localBufferSizePerWorkitem) +
-    " -D GLOBALSIZE="+to_string(globalBufferSizePerWorkgroup) +
-    " -D PHOTONSPERINTENSITYPERTIME="+to_string(photonsPerIntensityPerTime);
-  #ifdef DEBUG
-  options += " -D DEBUG -D DEBUG_SIZE=" + to_string(DEBUG_SIZE);
-  #endif
-  Simulation::init(readFile("program.cl"), options);
+    " -D ENDTIME="+to_string(physicalParameters.endTime) +
+    " -D DIFFUSIVITY="+to_string(physicalParameters.diffusivity) +
+    " -D RNGRESERVED="+to_string(simulationParameters.rngReserved) +
+    " -D LOCALSIZE="+to_string(simulationParameters.localBufferSizePerWorkitem) +
+    " -D GLOBALSIZE="+to_string(simulationParameters.globalBufferSizePerWorkgroup) +
+    " -D PHOTONSPERINTENSITYPERTIME="+to_string(physicalParameters.photonsPerIntensityPerTime);
 
+#ifdef DEBUG
+  options += " -D DEBUG -D DEBUG_SIZE=" + to_string(simulationParameters.debugSize);
+  #endif
+  
+  return options;
+}
+
+FCS_out FCS::run(physical_parameters physicalParameters,
+		 simulation_parameters simulationParameters){
   cl::Event kernelEvent;
   cl_int err;
-  cl::Buffer globalBuffer = 
-    cl::Buffer(context, CL_MEM_READ_WRITE,
-	       workgroups*globalBufferSizePerWorkgroup*sizeof(cl_ulong),
-	       NULL, &err);
-  if(err != CL_SUCCESS)
-    printf("buffer create fail\n");
+
+  FCS::init(readFile("program.cl"),
+	    buildOptions(physicalParameters, simulationParameters));
+
+  // allocate global memory on gpu
+  size_t globalBufferSize = simulationParameters.workgroups*\
+    simulationParameters.globalBufferSizePerWorkgroup*sizeof(cl_ulong);
+  cl::Buffer globalBuffer = cl::Buffer(context, CL_MEM_READ_WRITE,
+				       globalBufferSize, NULL, &err);
   assert(err == CL_SUCCESS);
-  cl::Buffer dropletsRemaining = cl::Buffer(context,CL_MEM_READ_WRITE|CL_MEM_COPY_HOST_PTR,
-					    sizeof(cl_uint), &totalDroplets, &err);
+  
+  // this allocates and copies totalDroplets(cpu) -> dropletsRemaining(gpu)
+  cl::Buffer dropletsRemaining = \
+    cl::Buffer(context, CL_MEM_READ_WRITE|CL_MEM_COPY_HOST_PTR,
+	       sizeof(cl_uint), &physicalParameters.totalDroplets, &err);
+  assert(err == CL_SUCCESS);
+  
   #ifdef DEBUG
-  assert(err == CL_SUCCESS);
-  cl::Buffer debug = cl::Buffer(context, CL_MEM_READ_WRITE, DEBUG_SIZE,
-				NULL, &err);
+  // holds the pickled objects from gpu
+  cl::Buffer debugBuffer = \
+    cl::Buffer(context, CL_MEM_READ_WRITE, simulationParameters.debugSize,
+	       NULL, &err);
+  assert(err == CL_SUCCESS);	
   #endif
-  if(err != CL_SUCCESS)
-    printf("buffer create fail\n");
-  assert(err == CL_SUCCESS);
-  cl_uint endTimeNS = (cl_uint)(endTime*1e9);
+
+  // allocate local memory in each workgroup
+  size_t localBufferSize = simulationParameters.workitems*\
+    simulationParameters.localBufferSizePerWorkitem*sizeof(cl_ulong);
+  cl::LocalSpaceArg localBuffer = cl::__local(localBufferSize);
+
+  // associate kernel arguments with buffers
   kernel.setArg(0, dropletsRemaining);
   kernel.setArg(1, globalBuffer);
-  kernel.setArg(2, cl::__local(workitems*localBufferSizePerWorkitem*sizeof(cl_uint)));
+  kernel.setArg(2, localBuffer);
   #ifdef DEBUG
-  kernel.setArg(3, debug);
-  #endif
-  
-  #ifdef DEBUG
-  printf("workgroups x workitems: %dx%d\n", workgroups, workitems);
-  
-  struct timespec start, stop;
-  clock_gettime(CLOCK_REALTIME, &start);
+  kernel.setArg(3, debugBuffer);
   #endif
 
-  queue.enqueueNDRangeKernel(kernel, cl::NDRange(0), cl::NDRange(workgroups*workitems),
-			     cl::NDRange(workitems), NULL, &kernelEvent);
+  // struct timespec start, stop;
+  // clock_gettime(CLOCK_REALTIME, &start);
+
+  queue.enqueueNDRangeKernel(kernel, cl::NDRange(0),
+			     cl::NDRange(simulationParameters.workgroups*\
+					 simulationParameters.workitems),
+			     cl::NDRange(simulationParameters.workitems), NULL,
+			     &kernelEvent);
   kernelEvent.wait();
 
-  #ifdef DEBUG
-  clock_gettime(CLOCK_REALTIME, &stop);
-  long astart = kernelEvent.getProfilingInfo<CL_PROFILING_COMMAND_START>();
-  long aend = kernelEvent.getProfilingInfo<CL_PROFILING_COMMAND_END>();
-  printf("CPU Start: %d, Stop: %d, Elapsed: %d\n", stop.tv_nsec, start.tv_nsec,
-  	 stop.tv_nsec-start.tv_nsec);
-  printf("GPU Start: %d, End: %d, Elapsed: %d\n", astart, aend, aend-astart);
-  #endif
+  // get profiling times
+  // clock_gettime(CLOCK_REALTIME, &stop);
+  long kernelBegin = kernelEvent.getProfilingInfo<CL_PROFILING_COMMAND_START>();
+  long kernelEnd = kernelEvent.getProfilingInfo<CL_PROFILING_COMMAND_END>();
+  // printf("CPU Start: %d, Stop: %d, Elapsed: %d\n",
+  // 	 stop.tv_nsec, start.tv_nsec, stop.tv_nsec-start.tv_nsec);
 
-  ulong * buffer = (ulong *)malloc(workgroups*globalBufferSizePerWorkgroup*sizeof(cl_ulong));
+  // transfer global buffers from gpu to cpu mem
+  ulong globalBufferNumLongs;
+  queue.enqueueReadBuffer(globalBuffer, CL_TRUE, 0, sizeof(long),
+			  &globalBufferNumLongs);
+  ulong *buffer = (ulong *)malloc(globalBufferNumLongs*sizeof(cl_ulong));
   queue.enqueueReadBuffer(globalBuffer, CL_TRUE, 0,
-			  workgroups*globalBufferSizePerWorkgroup*sizeof(cl_ulong), buffer);
-  printf("photons: %d, buffersize: %d\n", buffer[0], workgroups*globalBufferSizePerWorkgroup);
+			  globalBufferNumLongs*sizeof(cl_ulong), buffer);
+  
   #ifdef DEBUG
-  char * debugData = (char *)malloc(DEBUG_SIZE);
-  queue.enqueueReadBuffer(debug, CL_TRUE, 0, DEBUG_SIZE, debugData);
+  char *debugString = (char *)malloc(simulationParameters.debugSize);
+  queue.enqueueReadBuffer(debugBuffer, CL_TRUE, 0,
+			  simulationParameters.debugSize, debugString);
   #endif
 
+  // wait for any transfers to finish
   queue.finish();
 
-  #ifdef DEBUG
-  return make_tuple(buffer, (uint)(workgroups*globalBufferSizePerWorkgroup), aend-astart, (char *)debugData, DEBUG_SIZE);
+  assert(globalBufferSize % sizeof(cl_ulong) == 0);
+  
+  #ifndef DEBUG
+  // 'buffer' is wrapped in a numpy array of longs
+  return make_tuple(buffer, globalBufferNumLongs);
   #else
-  return make_tuple(buffer, (uint)(workgroups*globalBufferSizePerWorkgroup), (long)0, (char  *) NULL, 0);
+
+  assert(kernelEnd > kernelBegin);
+  // debugString is unpicked in python caller
+  return make_tuple(buffer, (uint)globalBufferNumLongs,
+		    kernelEnd-kernelBegin, debugString,
+		    simulationParameters.debugSize);
   #endif
 }
