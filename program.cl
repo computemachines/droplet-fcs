@@ -1,16 +1,23 @@
+// program.cl
+// All functions prefixed by MWC were taken from:
+// http://cas.ee.ic.ac.uk/people/dt10/research/rngs-gpu-mwc64x.html
+// I should probably get permission
+//
+// My code begins on line 218
+
+
 #pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
 #pragma OPENCL EXTENSION cl_khr_local_int32_base_atomics : enable
 
 #define LOCK(a) atom_cmpxchg(a, 0, 1) 
-#define UNLOCK(a) atom_xchg(a, 0) 
-
+#define UNLOCK(a) atom_xchg(a, 0)
 
 // Pre: a<M, b<M 
 // Post: r=(a+b) mod M 
 ulong MWC_AddMod64(ulong a, ulong b, ulong M) 
 { 
   ulong v=a+b; 
-  if( (v>=M) || (v<a) ) 
+  if( (v>=M) || (v<a) )
     v=v-M; 
   return v; 
 } 
@@ -205,7 +212,9 @@ uint MWC64X_NextUint(mwc64x_state_t *s)
   uint res=s->x ^ s->c; 
   MWC64X_Step(s); 
   return res; 
-} 
+}
+
+// Remaining is my work
 
 float2 nextGaussVec2(mwc64x_state_t *s){ 
   float u1 = MWC64X_NextUint(s)/pow(2.0f, 32); 
