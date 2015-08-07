@@ -52,7 +52,7 @@ extern "C" {
     char *debug = get<3>(results);
 
     PyObject * ret = Py_BuildValue("(Ols#)", photonsNumpy, time,
-				   get<3>(results), (int)get<4>(results));
+				   debug, debugSize);
     Py_INCREF(ret);
     return ret;
     #endif
