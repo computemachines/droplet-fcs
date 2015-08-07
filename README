@@ -1,0 +1,8 @@
+compile with scons
+
+$ scons debug=1
+
+use fcsmodule.so from python
+
+>> from fcs import fcs
+>> out = fcs()
