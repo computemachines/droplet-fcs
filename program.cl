@@ -5,6 +5,10 @@
 //
 // My code begins on line 218
 
+//#define USE_PRINTF
+#ifndef USE_PRINTF
+#define printf(s, ...)
+#endif
 
 #pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
 #pragma OPENCL EXTENSION cl_khr_local_int32_base_atomics : enable
