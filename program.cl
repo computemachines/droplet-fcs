@@ -17,6 +17,9 @@
 #define LOCK(a) atom_cmpxchg(a, 0, 1) 
 #define UNLOCK(a) atom_xchg(a, 0)
 
+typedef unsigned int uint32_t;
+typedef unsigned long uint64_t;
+
 // Pre: a<M, b<M 
 // Post: r=(a+b) mod M 
 ulong MWC_AddMod64(ulong a, ulong b, ulong M) 
@@ -280,6 +283,16 @@ void wrap(float3 *position){ // +- 1 maps to +- 10um
 #define pkl_log_int(D, I) _post_to_debug_(D, 'J'); _post_multibyte_to_debug_(D, I, 4)
 #define pkl_log_long(D, L) _post_to_debug_(D, '\x8a'); _post_to_debug_(D, 0x08); _post_multibyte_to_debug_(D, L, 8)
 #define pkl_near_end(D) ((__debug_pos__ + 100) > DEBUG_SIZE)
+
+uint64_t float_to_double(float val){
+  //unsigned int v = as_uint(val);
+  uint32_t v = *(uint32_t*) &val;
+  uint64_t sign = (v >> 31) & 1;
+  uint64_t exp = (v >> 23) & ((1 << 8) - 1);
+  exp = exp - 127 + 1023;
+  uint64_t sig = v & ((1 << 23) - 1);
+  return (sign << 63) | (exp << 52) | (sig << (52-23));
+}
 
 __kernel void kernel_func(__global uint* dropletsRemaining,
 			  __global ulong* globalBuffer, //write only (thinking about mapping to host mem)
