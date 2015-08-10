@@ -43,15 +43,15 @@ void FCS::init(std::string source, std::string options){
 std::string FCS::buildOptions(physical_parameters physicalParameters,
 			      simulation_parameters simulationParameters){
   string options = 
-    " -D ENDTIME="+to_string(physicalParameters.endTime) +
-    " -D DIFFUSIVITY="+to_string(physicalParameters.diffusivity) +
+    " -D ENDTIME="+to_string(physicalParameters.endTime) + "f"+
+    " -D DIFFUSIVITY="+to_string(physicalParameters.diffusivity) + "f"+
     " -D RNGRESERVED="+to_string(simulationParameters.rngReserved) +
     " -D LOCALSIZE="+to_string(simulationParameters.localBufferSizePerWorkitem) +
     " -D GLOBALSIZE="+to_string(simulationParameters.globalBufferSizePerWorkgroup) +
-    " -D PHOTONSPERINTENSITYPERTIME="+to_string(physicalParameters.photonsPerIntensityPerTime);
+    " -D PHOTONSPERINTENSITYPERTIME="+to_string(physicalParameters.photonsPerIntensityPerTime) +"f";
 
 #ifdef DEBUG
-  options += " -D DEBUG -D DEBUG_SIZE=" + to_string(simulationParameters.debugSize);
+  options += " -w -D DEBUG -D DEBUG_SIZE=" + to_string(simulationParameters.debugSize);
   #endif
   
   return options;
@@ -121,7 +121,7 @@ FCS_out FCS::run(physical_parameters physicalParameters,
   queue.enqueueReadBuffer(globalBuffer, CL_TRUE, 0, sizeof(long),
 			  &globalBufferNumLongs);
   ulong *buffer = (ulong *)malloc(globalBufferNumLongs*sizeof(cl_ulong));
-  queue.enqueueReadBuffer(globalBuffer, CL_TRUE, 0,
+  queue.enqueueReadBuffer(globalBuffer, CL_TRUE, sizeof(cl_long),
 			  globalBufferNumLongs*sizeof(cl_ulong), buffer);
   
   #ifdef DEBUG
@@ -133,14 +133,11 @@ FCS_out FCS::run(physical_parameters physicalParameters,
   // wait for any transfers to finish
   queue.finish();
 
-  assert(globalBufferSize % sizeof(cl_ulong) == 0);
-  
   #ifndef DEBUG
   // 'buffer' is wrapped in a numpy array of longs
   return make_tuple(buffer, globalBufferNumLongs);
   #else
 
-  assert(kernelEnd > kernelBegin);
   // debugString is unpicked in python caller
   return make_tuple(buffer, (uint)globalBufferNumLongs,
 		    kernelEnd-kernelBegin, debugString,

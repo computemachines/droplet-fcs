@@ -8,6 +8,7 @@
 
 #pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
 #pragma OPENCL EXTENSION cl_khr_local_int32_base_atomics : enable
+//#pragma OPENCL EXTENSION cl_khr_fp64 : enable
 
 #define LOCK(a) atom_cmpxchg(a, 0, 1) 
 #define UNLOCK(a) atom_xchg(a, 0)
@@ -15,7 +16,7 @@
 // Pre: a<M, b<M 
 // Post: r=(a+b) mod M 
 ulong MWC_AddMod64(ulong a, ulong b, ulong M) 
-{ 
+{
   ulong v=a+b; 
   if( (v>=M) || (v<a) )
     v=v-M; 
@@ -216,7 +217,7 @@ uint MWC64X_NextUint(mwc64x_state_t *s)
 
 // Remaining is my work
 
-float2 nextGaussVec2(mwc64x_state_t *s){ 
+float2 nextGfloat2(mwc64x_state_t *s){ 
   float u1 = MWC64X_NextUint(s)/pow(2.0f, 32); 
   float u2 = MWC64X_NextUint(s)/pow(2.0f, 32); 
   return (float2)(sqrt(-2*log(u1))*cospi(2*u2), 
@@ -234,10 +235,9 @@ float3 nextUfloat3(mwc64x_state_t *s){
 }
 
 float3 nextGfloat3(mwc64x_state_t *s){
-  return (float3)(nextGaussVec2(s), nextGaussVec2(s).x);
+  return (float3)(nextGfloat2(s), nextGfloat2(s).x);
 }
 
-/* #define DIFFUSIVITY 1.0 */
 float timestep(float sigma){
   return pown(sigma, 2) / (6*DIFFUSIVITY);
 }
@@ -247,27 +247,22 @@ float sigma(float timestep){
 }
 
 float max_sigma(float3 position){
-  return 1.0; //8e-4; // distance/5 to 1um x 1um x 5um box around detection volume + 8nm
+  float3 box = (float3)(.1f, .1f, .5f);
+  return length(fmax(fabs(position)-box/2, (float3)(0.0f))) + 8e-4f;
 }
 
 float detectionIntensity(float3 position){ //detection volume 200nm x 200nm x 2.7um
-  return exp(-dot(position*position, (float3)(2500, 2500, 13.717))/2);
+  return exp(-dot(position*position, (float3)(2500, 2500, 13.717f))/2.0f);
 }
 
 void wrap(float3 *position){ // +- 1 maps to +- 10um
-  *position = fmod((*position)+(float3)(.5), (float3)(1))-(float3)(.5);
+  *position = fmod((*position)+(float3)(.5f), (float3)(1))-(float3)(.5f);
 }
 
-/* #define RNGRESERVED 10000  */
-/* #define LOCALSIZE 1000  */
-/* #define GLOBALSIZE 1000  */
-/* #define PHOTONSPERINTENSITYPERTIME 2.0  */
-/* #define ENDTIME 10.0 */
-/* #define DEBUG_SIZE 20 */
-
+// These macros write pickle opcodes to a buffer
+// Could have been implemented as functions, however I wanted the option
+// to hide variables in caller's scope (mimic closure?)
 #define _post_to_debug_(D, C) D[__debug_pos__] = C, __debug_pos__ ++
-/* #define _post_multibyte_to_debug(_D, C, T)	\ */
-/*   *((T *)(&D[__debug_pos__])) = C, __debug_pos__ += sizeof(T) */
 #define _post_multibyte_to_debug_(D, C, N) for (int i=0; i < N; i++) { (_post_to_debug_(D, C >> 8*i)); }
 #define pkl_init(D) uint __debug_pos__ = 0
 #define pkl_end(D) (_post_to_debug_(D, '.'))
@@ -279,17 +274,16 @@ void wrap(float3 *position){ // +- 1 maps to +- 10um
 #define pkl_close(D, T) (_post_to_debug_(D, T))
 #define pkl_log_char(D, C) (_post_to_debug_(D, 'K'), _post_to_debug_(D, C))
 #define pkl_log_int(D, I) _post_to_debug_(D, 'J'); _post_multibyte_to_debug_(D, I, 4)
-#define pkl_log_float(D, F) _post_to_debug_(D, 'G'); _post_multibyte_to_debug_(debug, F, 4) ; _post_multibyte_to_debug_(D, 0, 4)
 #define pkl_log_long(D, L) _post_to_debug_(D, '\x8a'); _post_to_debug_(D, 0x08); _post_multibyte_to_debug_(D, L, 8)
-/* #define pkl_log_float(D, F) (_post_to_debug_(D, 'G'), _post_multibyte_to_debug_(D, F, float)) */
+#define pkl_near_end(D) ((__debug_pos__ + 100) > DEBUG_SIZE)
 
-__kernel void hello(__global uint* dropletsRemaining,
-		    __global ulong* globalBuffer, //write only (thinking about mapping to host mem)
-		    __local ulong* localBuffer 
-                    #ifdef DEBUG
-		    , __global char* debug
-		    #endif
-		    ){
+__kernel void kernel_func(__global uint* dropletsRemaining,
+			  __global ulong* globalBuffer, //write only (thinking about mapping to host mem)
+			  __local ulong* localBuffer 
+#ifdef DEBUG
+			  , __global char* debug
+#endif
+			  ){
   int n = get_global_id(0);
   int m = get_local_id(0);
   __global int *globalMutex;
@@ -300,30 +294,11 @@ __kernel void hello(__global uint* dropletsRemaining,
   }
   
   #ifdef DEBUG
-
-  uint fourbytes = 0x12345678;
-
-  int test = -10;
-  
   pkl_init(debug);
   pkl_open(debug);
-  /* pkl_open(debug);  */
-  /* pkl_log_char(debug, 77);  */
-  /* pkl_close(debug, LIST);  */
-  /* pkl_log_char(debug, 170); */
-  /* pkl_log_int(debug, fourbytes); */
-  /* pkl_log_int(debug, -12); */
-  /* long eightbytes =              0x7123456789ABCDEF; */
-  /* float frac = -1.05; */
-  /* int exp_sign = as_int(frac) &  0xFF800000; */
-  /* _post_to_debug_(debug, 'G'); // '\x8a' */
-  /* /\* _post_to_debug_(debug, 0x08); *\/ */
-  /* _post_multibyte_to_debug_(debug, exp_sign, 4); */
-  /* _post_multibyte_to_debug_(debug, 0, 4); */
-
-
-
+  uint test = 0;
   #endif
+
   mwc64x_state_t rng; 
   MWC64X_SeedStreams(&rng, 100340, RNGRESERVED);
 
@@ -331,17 +306,21 @@ __kernel void hello(__global uint* dropletsRemaining,
 
   #ifdef DEBUG
   pkl_log_int(debug, *dropletsRemaining);
+
+  uint step_limit = (uint)100000;
   #endif
 
+  printf("testing printf from program.cl\n");
+  
   while(atomic_dec(dropletsRemaining)>0){
-    float3 position = (float3)(-1, 0, 0); //nextUfloat3(&rng);
+    float3 position = (float3)(0); //nextUfloat3(&rng);
     float intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
     float T_j = 0, dT_j = timestep(max_sigma(position));
     float CDFI_j = 0;
     float photon_i = 0, CDFphoton_i = -log(nextUfloat(&rng));
     #ifdef DEBUG
     uint steps = 0;
-    pkl_log_int(debug, (int)(CDFphoton_i*1e6));
+    pkl_log_int(debug, (int)(CDFphoton_i*1.0e6f));
     pkl_open(debug);
     #endif
     do{
@@ -351,21 +330,24 @@ __kernel void hello(__global uint* dropletsRemaining,
 	CDFI_j += intensity*dT_j;
 	
 	dT_j = timestep(max_sigma(position));
-	printf("%f, ",position.x);
-	position += (float3)(2, 0, 0)/(300); // += sigma(dT_j)*nextGfloat3(&rng);
+	printf("%f\n", dT_j);
+	position += sigma(dT_j)*nextGfloat3(&rng); //+= (float3)(2, 0, 0)/(300);
 	intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
 	wrap(&position); 
 	#ifdef DEBUG
-	pkl_log_int(debug, (int)(T_j*1e6));
-	pkl_open(debug);
-	pkl_open(debug);
-	pkl_log_int(debug, (int)(position.x*1e6));
-	pkl_log_int(debug, (int)(position.y*1e6));
-	pkl_log_int(debug, (int)(position.z*1e6));
-	pkl_close(debug, TUPLE);
-	pkl_log_int(debug, (int)(intensity*1e6));
-	pkl_close(debug, LIST);
-	steps ++;
+	if(true){
+	  test ++;
+	  pkl_log_int(debug, (int)(T_j*1e9f));
+	  pkl_open(debug);
+	  pkl_open(debug);
+	  pkl_log_int(debug, (int)(position.x*1e6f));
+	  pkl_log_int(debug, (int)(position.y*1e6f));
+	  pkl_log_int(debug, (int)(position.z*1e6f));
+	  pkl_close(debug, TUPLE);
+	  pkl_log_int(debug, (int)(intensity*1e6f));
+	  pkl_close(debug, LIST);
+	  steps ++;
+	}
 	#endif
       }
 
@@ -381,7 +363,11 @@ __kernel void hello(__global uint* dropletsRemaining,
 	CDFI_j = CDFI_j + intensity*dT_j;
 	photon_i = T_j; // do not save to buffer. this is only to prevent endless do-while
       }
+#ifndef DEBUG
     }while(photon_i < ENDTIME);
+#else
+  }while(photon_i < ENDTIME && ((step_limit --)  > 0)); //&& !pkl_near_end(debug));
+#endif
     #ifdef DEBUG
     pkl_close(debug, DICT);
     pkl_log_int(debug, steps);
