@@ -7,12 +7,12 @@ from pickletools import dis
 import numpy as np
 import fcs
 
-out = fcs.fcs(1, 20.0)
+out = fcs.fcs(1, 1.0)
 
 # fig = plt.figure(figsize=(13.66, 7.68), dpi=100)
 # ax = fig.add_subplot(111, projection='3d')
-# debug = loads(out[2])
-# trajectory = debug[2]
+debug = loads(out[2])
+trajectory = debug[2]
 
 def plot(end=len(trajectory), spin=False, alpha=lambda T:T/T.max()):
     X, Y, Z = zip(*[value[0] for (key, value) in sorted(trajectory.items())])
