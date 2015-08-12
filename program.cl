@@ -290,6 +290,23 @@ void _post_reversed_ulong_to_debug_(__global char *debug, uint *__debug_pos__ptr
   *__debug_pos__ptr = __debug_pos__;
 }
 
+void _post_string_to_debug_(__global char *debug, uint *__debug_pos__ptr,
+			    __constant char *string){
+  uint __debug_pos__ = *__debug_pos__ptr;
+
+  uint __str_len_pos__ = __debug_pos__;
+  // skip space for length
+  __debug_pos__ ++;
+  
+  char c;
+  uint index;
+  for(index = 0; (c=string[index]) != 0; index++)
+    _post_to_debug_(debug, c);
+  debug[__str_len_pos__] = index;
+
+  *__debug_pos__ptr = __debug_pos__;
+}
+
 #define pkl_end(D) (_post_to_debug_(D, '.'))
 #define _mark_(D) (_post_to_debug_(D, '('))
 #define LIST 'l'
@@ -301,6 +318,9 @@ void _post_reversed_ulong_to_debug_(__global char *debug, uint *__debug_pos__ptr
 #define pkl_log_int(D, I) _post_to_debug_(D, 'J'); _post_multibyte_to_debug_(D, I, 4)
 #define pkl_log_long(D, L) _post_to_debug_(D, '\x8a'); _post_to_debug_(D, 0x08); _post_multibyte_to_debug_(D, L, 8)
 #define pkl_log_float(D, F) _post_to_debug_(D, 'G'); _post_reversed_ulong_to_debug_(_debug_(D), float_to_double(F))
+
+#define pkl_log_str(D, S) _post_to_debug_(debug, 'U'); _post_string_to_debug_(_debug_(D), S)
+
 #define pkl_near_end(D) ((__debug_pos__ + 100) > DEBUG_SIZE)
 
 __kernel void kernel_func(__global uint* dropletsRemaining,
@@ -326,6 +346,11 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
   pkl_log_float(debug, 10.0);
   pkl_log_float(debug, 3.1415e-10);
   pkl_log_float(debug, 1e20);
+
+  __constant char *label = "hello worlds";
+  pkl_log_str(debug, label);
+
+  pkl_log_str(debug, "these are words");
   
   pkl_close(debug, LIST);
   #endif
