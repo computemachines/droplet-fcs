@@ -273,55 +273,109 @@ uint64_t float_to_double(float val){
   return (sign << 63) | (exp << 52) | (sig << (52-23));
 }
 
+// represents the current position in a pickle stream
+typedef __global char * pkl_t;
 
-// These macros write pickle opcodes to a buffer
-// Could have been implemented as functions, however I wanted the option
-// to hide variables in caller's scope (mimic closure?)
-#define pkl_init(D) uint __debug_pos__ = 0
-#define _post_to_debug_(D, C) D[__debug_pos__] = C, __debug_pos__ ++
-#define _debug_(D) D, &__debug_pos__
-
-#define _post_multibyte_to_debug_(D, C, N) for (int i=0; i < N; i++) { (_post_to_debug_(D, ((C >> 8*i) & 0xFF))); }
-#define _post_reversed_multibyte_to_debug_(D, C, N) for (int i=N-1; i>=0 ; i--) { (_post_to_debug_(D, ((C >> 8*i) & 0xFF))); }
-void _post_reversed_ulong_to_debug_(__global char *debug, uint *__debug_pos__ptr,
-				    ulong data){
-  uint __debug_pos__ = *__debug_pos__ptr;
-  _post_reversed_multibyte_to_debug_(debug, data, 8);
-  *__debug_pos__ptr = __debug_pos__;
-}
-
-void _post_string_to_debug_(__global char *debug, uint *__debug_pos__ptr,
-			    __constant char *string){
-  uint __debug_pos__ = *__debug_pos__ptr;
-
-  uint __str_len_pos__ = __debug_pos__;
-  // skip space for length
-  __debug_pos__ ++;
-  
-  char c;
-  uint index;
-  for(index = 0; (c=string[index]) != 0; index++)
-    _post_to_debug_(debug, c);
-  debug[__str_len_pos__] = index;
-
-  *__debug_pos__ptr = __debug_pos__;
-}
-
-#define pkl_end(D) (_post_to_debug_(D, '.'))
-#define _mark_(D) (_post_to_debug_(D, '('))
+// pickle collection type enum
+// these are the actual pickle opcodes
 #define LIST 'l'
 #define DICT 'd'
 #define TUPLE 't'
-#define pkl_open(D) _mark_(D)
-#define pkl_close(D, T) (_post_to_debug_(D, T))
-#define pkl_log_char(D, C) (_post_to_debug_(D, 'K'), _post_to_debug_(D, C))
-#define pkl_log_int(D, I) _post_to_debug_(D, 'J'); _post_multibyte_to_debug_(D, I, 4)
-#define pkl_log_long(D, L) _post_to_debug_(D, '\x8a'); _post_to_debug_(D, 0x08); _post_multibyte_to_debug_(D, L, 8)
-#define pkl_log_float(D, F) _post_to_debug_(D, 'G'); _post_reversed_ulong_to_debug_(_debug_(D), float_to_double(F))
 
-#define pkl_log_str(D, S) _post_to_debug_(debug, 'U'); _post_string_to_debug_(_debug_(D), S)
+// shallow copy of pkl_t (__global char *)
+// use like:
+//   pkl_t pkl = pkl_init(debug);
+// then use &pkl for all other pkl_* calls
+pkl_t pkl_init(pkl_t debug){
+  return debug;
+}
 
-#define pkl_near_end(D) ((__debug_pos__ + 100) > DEBUG_SIZE)
+// internal
+// called from pickling functions to manage pointers
+void _post_to_pkl_(pkl_t *pkl_ptr, char c){
+  **pkl_ptr = c;
+  (*pkl_ptr) ++;
+}
+
+// call to terminate a pickle stream
+void pkl_end(pkl_t *pkl_ptr){
+  _post_to_pkl_(pkl_ptr, '.');
+}
+
+// write char to pickle stream
+void pkl_log_char(pkl_t *pkl_ptr, char c){
+  _post_to_pkl_(pkl_ptr, 'K');
+  _post_to_pkl_(pkl_ptr, c);
+}
+
+// write mark opcode to pickle stream
+void _mark_(pkl_t *pkl_ptr){
+  _post_to_pkl_(pkl_ptr, '(');
+}
+
+// begin collection in pickle stream
+// all following calls to pkl_log_* place objects in collection
+// terminate collection with call to pkl_close
+// example, writes {10: "hello worlds"} to the stream:
+//   pkl_open(&pkl);
+//   pkl_log_int(&pkl, 10);
+//   pkl_log_string(&pkl, "hello worlds");
+//   pkl_close(&pkl, DICT);
+void pkl_open(pkl_t *pkl_ptr){
+  _mark_(pkl_ptr);
+}
+
+// closes a collection and determines its type
+// an unpaired call to pkl_open must precede a call to pkl_close
+void pkl_close(pkl_t *pkl_ptr, char collection_type_enum){
+  _post_to_pkl_(pkl_ptr, collection_type_enum);
+}
+
+
+#define _post_multibyte_to_pkl_(D, C, N) \
+  for (int i=0; i < N; i++) { \
+    _post_to_pkl_(D, ((C >> 8*i) & 0xFF));	\
+  }
+
+#define _post_reversed_multibyte_to_pkl_(D, C, N) \
+  for (int i=N-1; i>=0 ; i--) { \
+    (_post_to_pkl_(D, ((C >> 8*i) & 0xFF))); \
+  }
+
+void pkl_log_int(pkl_t pkl, int n){ 
+  _post_to_pkl_(pkl, 'J'); 
+  _post_multibyte_to_pkl_(pkl, n, 4); 
+} 
+
+void _post_string_to_pkl_(pkl_t *pkl_ptr, __constant char *string){ 
+  // reserve a char for the length of the string
+  pkl_t str_len_pos = *pkl_ptr;
+  (*pkl_ptr) ++;
+  
+  char c;
+  uint index; 
+  for(index = 0; (c=string[index]) != 0; index++) 
+    _post_to_pkl_(pkl_ptr, c);
+  _post_to_pkl_(&str_len_pos, index);
+} 
+
+void pkl_log_long(pkl_t *pkl_ptr, long n){
+  _post_to_pkl_(pkl_ptr, '\x8a');
+  _post_to_pkl_(pkl_ptr, 8);
+  _post_multibyte_to_pkl_(pkl_ptr, n, 8);
+}
+
+void pkl_log_float(pkl_t *pkl_ptr, float n){
+  _post_to_pkl_(pkl_ptr, 'G');
+  unsigned long stretched = float_to_double(n);
+  _post_reversed_multibyte_to_pkl_(pkl_ptr, stretched, 8);
+}
+
+//#define pkl_log_str(D, S) _post_to_debug_(debug, 'U'); _post_string_to_debug_(_debug_(D), S)
+void pkl_log_str(pkl_t *pkl_ptr, __constant char *s){
+  _post_to_pkl_(pkl_ptr, 'U');
+  _post_string_to_pkl_(pkl_ptr, s);
+}
 
 __kernel void kernel_func(__global uint* dropletsRemaining,
 			  __global ulong* globalBuffer, //write only (thinking about mapping to host mem)
@@ -335,37 +389,21 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
   __global int *globalMutex;
   __local int *localMutex;
 
+  // on my integrated gpu globalBuffer usually isn't clean
   for(int i = 0; i < GLOBALSIZE; i++){
     globalBuffer[i] = 0;
   }
   
-  #ifdef DEBUG
-  pkl_init(debug);
-  pkl_open(debug); 
+#ifdef DEBUG
+  pkl_t pkl = pkl_init(debug);
+  pkl_open(&pkl); // LIST
+#endif
 
-  pkl_log_float(debug, 10.0);
-  pkl_log_float(debug, 3.1415e-10);
-  pkl_log_float(debug, 1e20);
-
-  __constant char *label = "hello worlds";
-  pkl_log_str(debug, label);
-
-  pkl_log_str(debug, "these are words");
-  
-  pkl_close(debug, LIST);
-  #endif
-
+  // deterministic random number generator
   mwc64x_state_t rng; 
   MWC64X_SeedStreams(&rng, 100340, RNGRESERVED);
 
-  __local uint index;
-
-  #ifdef DEBUG
-  /* pkl_log_int(debug, *dropletsRemaining); */
-
-  // prevents endless loop fun
-  uint step_limit = (uint)100000;
-  #endif
+  __local uint localPhotonsPos;
 
   while(atomic_dec(dropletsRemaining)>0){
     float3 position = (float3)(0); //nextUfloat3(&rng);
@@ -373,69 +411,51 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
     float T_j = 0, dT_j = timestep(max_sigma(position));
     float CDFI_j = 0;
     float photon_i = 0, CDFphoton_i = -log(nextUfloat(&rng));
-    #ifdef DEBUG
-    uint steps = 0;
-    /* pkl_log_int(debug, (int)(CDFphoton_i*1.0e6f)); */
-    /* pkl_open(debug); */
-    #endif
+#ifdef DEBUG
+    pkl_open(&pkl); // DICT
+#endif
     do{
       if(CDFphoton_i > CDFI_j){
-	// step t_j
 	T_j += dT_j;
 	CDFI_j += intensity*dT_j;
 	
 	dT_j = timestep(max_sigma(position));
-	position += sigma(dT_j)*nextGfloat3(&rng); //+= (float3)(2, 0, 0)/(300);
+	position += sigma(dT_j)*nextGfloat3(&rng);
 	intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
 	wrap(&position); 
-	#ifdef DEBUG
-	/* if(true){ */
-	/*   test ++; */
-	/*   pkl_log_float(debug, T_j); */
-	/*   pkl_open(debug); */
-	/*   pkl_open(debug); */
-	/*   pkl_log_int(debug, (int)(position.x*1e6f)); */
-	/*   pkl_log_int(debug, (int)(position.y*1e6f)); */
-	/*   pkl_log_int(debug, (int)(position.z*1e6f)); */
-	/*   pkl_close(debug, TUPLE); */
-	/*   pkl_log_int(debug, (int)(intensity*1e6f)); */
-	/*   pkl_close(debug, LIST); */
-	/*   steps ++; */
-	/* } */
-	#endif
-      }
 
+#ifdef DEBUG
+	pkl_log_float(&pkl, T_j); // key
+	pkl_open(&pkl); // value // TUPLE
+	pkl_log_float(&pkl, position.x); 
+	pkl_log_float(&pkl, position.y); 
+	pkl_log_float(&pkl, position.z); 
+	pkl_close(&pkl, TUPLE); 
+#endif
+      } // if(CDFphoton_i > CDFI_j)
+      
       if(CDFphoton_i < CDFI_j + intensity*dT_j){
 	photon_i = (CDFphoton_i - CDFI_j)/intensity + T_j;
-	globalBuffer[index] = (ulong)(photon_i*1e9);
-	index ++;
+	globalBuffer[localPhotonsPos] = (ulong)(photon_i*1e9);
+	localPhotonsPos ++;
 	CDFphoton_i -= log(nextUfloat(&rng));
-	/* #ifdef DEBUG */
-	/* pkl_log_int(debug, index); */
-	/* #endif */
       }else{
 	CDFI_j = CDFI_j + intensity*dT_j;
-	photon_i = T_j; // do not save to buffer. this is only to prevent endless do-while
-      }
-#ifndef DEBUG
+	photon_i = T_j;
+      } // if(CDFphoton_i < CDFI_j + intensity*dT_j)
+      
     }while(photon_i < ENDTIME);
-#else
-  }while(photon_i < ENDTIME && ((step_limit --)  > 0)); //&& !pkl_near_end(debug));
-#endif
-    #ifdef DEBUG
-    /* pkl_close(debug, DICT); */
-    /* pkl_log_int(debug, steps); */
-    #endif
-  }
+    pkl_close(&pkl, DICT);
+  } // while(atomic_dec(dropletsRemaining)>0)
 
-  //this is a hack. for some reason index=0 -> 0 droplets but
-  // index=n -> (n-1) droplets for n>1
-  if(index==0)
-    index ++;
-  globalBuffer[0] = index-1;
+  //this is a hack. for some reason localPhotonsPos=0 -> 0 droplets but
+  // localPhotonsPos=n -> (n-1) droplets for n>1
+  if(localPhotonsPos==0)
+    localPhotonsPos ++;
+  globalBuffer[0] = localPhotonsPos-1;
   
-  #ifdef DEBUG
-  /* pkl_close(debug, LIST); */
-  pkl_end(debug);
-  #endif
+#ifdef DEBUG
+  pkl_close(&pkl, LIST);
+  pkl_end(&pkl);
+#endif
 }
