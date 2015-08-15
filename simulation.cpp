@@ -58,7 +58,7 @@ void Simulation::init(string source, string options){
   #ifndef DEBUG
   if(err != CL_SUCCESS){
   #endif
-    printf("log (length: %d): %s\n", log.size(), log.c_str());
+    printf("log (length: %d): %s\n", (int)log.size(), log.c_str());
     cout.flush();
   #ifndef DEBUG
   }
@@ -71,9 +71,3 @@ void Simulation::init(string source, string options){
   kernel = kernels[0];
   assert(err == CL_SUCCESS);
 };
-
-
-// cl::Buffer Simulation::createCorrBuff(size_t size){
-//   //   return cl::Buffer(context, CL_MEM_WRITE_ONLY, size, NULL, &err);
-//   
-// }

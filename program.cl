@@ -346,9 +346,9 @@ void pkl_close(pkl_t *pkl_ptr, char collection_type_enum){
     (_post_to_pkl_(D, ((C >> 8*i) & 0xFF))); \
   }
 
-void pkl_log_int(pkl_t pkl, int n){ 
-  _post_to_pkl_(pkl, 'J'); 
-  _post_multibyte_to_pkl_(pkl, n, 4); 
+void pkl_log_int(pkl_t *pkl_ptr, int n){ 
+  _post_to_pkl_(pkl_ptr, 'J'); 
+  _post_multibyte_to_pkl_(pkl_ptr, n, 4); 
 } 
 
 void _post_string_to_pkl_(pkl_t *pkl_ptr, __constant char *string){ 
