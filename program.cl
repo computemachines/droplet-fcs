@@ -283,11 +283,12 @@ typedef __global char * pkl_t;
 #define TUPLE 't'
 
 // shallow copy of pkl_t (__global char *)
+// pkl[0] is the length of the pickle string/stream
 // use like:
 //   pkl_t pkl = pkl_init(debug);
 // then use &pkl for all other pkl_* calls
 pkl_t pkl_init(pkl_t debug){
-  return debug;
+  return debug+4;
 }
 
 // internal
@@ -298,8 +299,11 @@ void _post_to_pkl_(pkl_t *pkl_ptr, char c){
 }
 
 // call to terminate a pickle stream
-void pkl_end(pkl_t *pkl_ptr){
+void pkl_end(pkl_t *pkl_ptr, pkl_t start){
   _post_to_pkl_(pkl_ptr, '.');
+  printf("*pkl_ptr:%d, start:%d, *pkl_ptr-start:%d\n", (int)(*pkl_ptr), (int)start, (int)(*pkl_ptr-start));
+  printf("chared:%d\n", (char)(int)(*pkl_ptr - start));
+  *(__global int *)start = (int)(*pkl_ptr - start - 4);
 }
 
 // write char to pickle stream
@@ -395,8 +399,8 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
   }
   
 #ifdef DEBUG
-  pkl_t pkl = pkl_init(debug);
-  pkl_open(&pkl); // LIST
+  pkl_t pkl_droplet = pkl_init(debug);
+  pkl_open(&pkl_droplet); // LIST
 #endif
 
   // deterministic random number generator
@@ -412,7 +416,7 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
     float CDFI_j = 0;
     float photon_i = 0, CDFphoton_i = -log(nextUfloat(&rng));
 #ifdef DEBUG
-    pkl_open(&pkl); // DICT
+    pkl_open(&pkl_droplet); // DICT
 #endif
     do{
       if(CDFphoton_i > CDFI_j){
@@ -425,12 +429,12 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
 	wrap(&position); 
 
 #ifdef DEBUG
-	pkl_log_float(&pkl, T_j); // key
-	pkl_open(&pkl); // value // TUPLE
-	pkl_log_float(&pkl, position.x); 
-	pkl_log_float(&pkl, position.y); 
-	pkl_log_float(&pkl, position.z); 
-	pkl_close(&pkl, TUPLE); 
+	pkl_log_float(&pkl_droplet, T_j); // key
+	pkl_open(&pkl_droplet); // value // TUPLE
+	pkl_log_float(&pkl_droplet, position.x); 
+	pkl_log_float(&pkl_droplet, position.y); 
+	pkl_log_float(&pkl_droplet, position.z); 
+	pkl_close(&pkl_droplet, TUPLE); 
 #endif
       } // if(CDFphoton_i > CDFI_j)
       
@@ -445,7 +449,9 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
       } // if(CDFphoton_i < CDFI_j + intensity*dT_j)
       
     }while(photon_i < ENDTIME);
-    pkl_close(&pkl, DICT);
+#ifdef DEBUG
+    pkl_close(&pkl_droplet, DICT);
+#endif
   } // while(atomic_dec(dropletsRemaining)>0)
 
   //this is a hack. for some reason localPhotonsPos=0 -> 0 droplets but
@@ -455,7 +461,7 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
   globalBuffer[0] = localPhotonsPos-1;
   
 #ifdef DEBUG
-  pkl_close(&pkl, LIST);
-  pkl_end(&pkl);
+  pkl_close(&pkl_droplet, LIST);
+  pkl_end(&pkl_droplet, debug);
 #endif
 }
