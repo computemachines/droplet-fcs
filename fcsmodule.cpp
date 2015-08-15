@@ -1,3 +1,5 @@
+// fcsmodule.cpp
+
 #include "Python.h"
 #include <tuple>
 
@@ -9,6 +11,7 @@
 
 extern "C" {
   static PyObject * fcs_fcs(PyObject *self, PyObject *args){
+    // default parameters
     physical_parameters physicalParameters;
     simulation_parameters simulationParameters;
     debug_parameters debugParameters;
@@ -56,11 +59,16 @@ extern "C" {
 
     long time = get<2>(results);
 
-    int debugSize = get<4>(results);
-    char *debug = get<3>(results);
+    vector<py_string> debug = get<3>(results);
 
-    PyObject * ret = Py_BuildValue("(Ols#)", photonsNumpy, time,
-				   debug, debugSize);
+    PyObject *ret = PyTuple_New(2+debug.size()); //photonsNumpy, time,
+    PyTuple_SetItem(ret, 0, photonsNumpy);
+    PyTuple_SetItem(ret, 1, Py_BuildValue("l", time));
+    for(int i = 0; i < debug.size(); i++){
+      py_string stringData = debug[i];
+      PyObject *s = Py_BuildValue("s#", get<0>(stringData), get<1>(stringData));
+      PyTuple_SetItem(ret, i+2, s);
+    }
     Py_INCREF(ret);
     return ret;
     #endif

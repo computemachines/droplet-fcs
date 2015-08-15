@@ -110,9 +110,9 @@ FCS_out FCS::run(physical_parameters physicalParameters,
   kernel.setArg(0, dropletsRemaining);
   kernel.setArg(1, globalBuffer);
   kernel.setArg(2, localBuffer);
-  #ifdef DEBUG
+#ifdef DEBUG
   kernel.setArg(3, debugBuffer);
-  #endif
+#endif
 
   // struct timespec start, stop;
   // clock_gettime(CLOCK_REALTIME, &start);
@@ -139,26 +139,37 @@ FCS_out FCS::run(physical_parameters physicalParameters,
   queue.enqueueReadBuffer(globalBuffer, CL_TRUE, sizeof(cl_long),
 			  globalBufferNumLongs*sizeof(cl_ulong), buffer);
   
-  #ifdef DEBUG
-  cl_int pickleLen;
-  queue.enqueueReadBuffer(debugBuffer, CL_TRUE, 0, 4, &pickleLen);
-  printf("%d\n", pickleLen);
-  char *debugString = (char *)malloc(pickleLen);
-  queue.enqueueReadBuffer(debugBuffer, CL_TRUE, 4,
-			  pickleLen, debugString);
-  #endif
-
+#ifndef DEBUG
+  
   // wait for any transfers to finish
   queue.finish();
 
-  #ifndef DEBUG
-  // 'buffer' is wrapped in a numpy array of longs
+  // 'buffer' is wrapped in a numpy array of longs in caller fcsmodule.cpp
   return make_tuple(buffer, globalBufferNumLongs);
-  #else
+
+#else
+
+  cl_int pickleLen = 1; // temporary positive value
+  char *debugString;
+  vector<py_string> pyStrings;
+  
+  for(int i = 0; pickleLen > 0; i ++){
+    queue.enqueueReadBuffer(debugBuffer, CL_TRUE, i*debugParameters.pickleSize,
+			    4, &pickleLen);
+    if(pickleLen == 0)
+      break;
+    debugString = (char *)malloc(pickleLen);
+    queue.enqueueReadBuffer(debugBuffer, CL_TRUE,
+			    4 + i*debugParameters.pickleSize,
+			    pickleLen, debugString);
+    printf("pickle len: %d\n", pickleLen);
+    pyStrings.push_back(make_tuple(debugString, pickleLen));
+  }
+  
+  queue.finish();
 
   // debugString is unpicked in python caller
   return make_tuple(buffer, (uint)globalBufferNumLongs,
-		    kernelEnd-kernelBegin, debugString,
-		    pickleLen);
-  #endif
+		    kernelEnd-kernelBegin, pyStrings);
+#endif
 }

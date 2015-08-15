@@ -10,9 +10,10 @@
 #include "simulation.hpp"
 
 #ifndef DEBUG
-typedef std::tuple<ulong*, uint> FCS_out;
+typedef std::tuple<ulong *, int> FCS_out;
 #else
-typedef std::tuple<ulong*, uint, long, char*, uint> FCS_out;
+typedef std::tuple<char *, int> py_string;
+typedef std::tuple<ulong *, uint, long, std::vector<py_string>> FCS_out;
 #endif
 
 // Ideally only the physical parameters should affect results

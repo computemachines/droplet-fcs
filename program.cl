@@ -291,19 +291,24 @@ pkl_t pkl_init(pkl_t debug){
   return debug+4;
 }
 
-// internal
+// private
 // called from pickling functions to manage pointers
 void _post_to_pkl_(pkl_t *pkl_ptr, char c){
   **pkl_ptr = c;
   (*pkl_ptr) ++;
 }
 
-// call to terminate a pickle stream
+// terminate a pickle stream
 void pkl_end(pkl_t *pkl_ptr, pkl_t start){
   _post_to_pkl_(pkl_ptr, '.');
-  printf("*pkl_ptr:%d, start:%d, *pkl_ptr-start:%d\n", (int)(*pkl_ptr), (int)start, (int)(*pkl_ptr-start));
-  printf("chared:%d\n", (char)(int)(*pkl_ptr - start));
+  //  printf("*pkl_ptr:%d, start:%d, *pkl_ptr-start:%d\n", (int)(*pkl_ptr), (int)start, (int)(*pkl_ptr-start));
+  //  printf("chared:%d\n", (char)(int)(*pkl_ptr - start));
   *(__global int *)start = (int)(*pkl_ptr - start - 4);
+}
+
+// check remaining chars in pickle stream before overflow into next pickle
+int pkl_remaining(pkl_t *pkl_ptr, pkl_t start){
+  return PICKLE_SIZE - (*pkl_ptr - start);
 }
 
 // write char to pickle stream
@@ -388,6 +393,7 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
 			  , __global char* debug
 #endif
 			  ){
+#define PICKLE_INITIAL_START debug
   int n = get_global_id(0);
   int m = get_local_id(0);
   __global int *globalMutex;
@@ -399,8 +405,10 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
   }
   
 #ifdef DEBUG
-  pkl_t pkl_droplet = pkl_init(debug);
+  pkl_t pkl_droplet = pkl_init(PICKLE_INITIAL_START);
+  pkl_t pkl_photons = pkl_init(PICKLE_INITIAL_START + PICKLE_SIZE);
   pkl_open(&pkl_droplet); // LIST
+  pkl_open(&pkl_photons);
 #endif
 
   // deterministic random number generator
@@ -429,12 +437,14 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
 	wrap(&position); 
 
 #ifdef DEBUG
-	pkl_log_float(&pkl_droplet, T_j); // key
-	pkl_open(&pkl_droplet); // value // TUPLE
-	pkl_log_float(&pkl_droplet, position.x); 
-	pkl_log_float(&pkl_droplet, position.y); 
-	pkl_log_float(&pkl_droplet, position.z); 
-	pkl_close(&pkl_droplet, TUPLE); 
+	if(pkl_remaining(&pkl_droplet, PICKLE_INITIAL_START) > 100){
+	  pkl_log_float(&pkl_droplet, T_j); // key
+	  pkl_open(&pkl_droplet); // value // TUPLE
+	  pkl_log_float(&pkl_droplet, position.x); 
+	  pkl_log_float(&pkl_droplet, position.y); 
+	  pkl_log_float(&pkl_droplet, position.z); 
+	  pkl_close(&pkl_droplet, TUPLE);
+	}
 #endif
       } // if(CDFphoton_i > CDFI_j)
       
@@ -462,6 +472,6 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
   
 #ifdef DEBUG
   pkl_close(&pkl_droplet, LIST);
-  pkl_end(&pkl_droplet, debug);
+  pkl_end(&pkl_droplet, PICKLE_INITIAL_START);
 #endif
 }
