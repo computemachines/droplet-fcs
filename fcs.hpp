@@ -30,19 +30,30 @@ struct simulation_parameters {
   uint localBufferSizePerWorkitem;
   // the number of unique random numbers allocated per generator
   uint rngReserved;
+};
 
+struct debug_parameters {  
   uint debugSize;
+  uint pickleSize;
 };
 
 // Executes a single fcs simulation with parameters
 class FCS : public Simulation{
 public:
   FCS_out run(physical_parameters physicalParameters,
-	      simulation_parameters simulationParameters);
+	      simulation_parameters simulationParameters
+#ifdef DEBUG
+	      ,debug_parameters debugParameters
+#endif
+	      );
 private:
   void init(std::string source, std::string options);
   std::string buildOptions(physical_parameters physicalParameters,
-			   simulation_parameters simulationParameters);
+			   simulation_parameters simulationParameters
+#ifdef DEBUG
+			   ,debug_parameters debugParameters
+#endif
+			   );
 };
 
 #endif

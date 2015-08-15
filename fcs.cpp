@@ -41,7 +41,11 @@ void FCS::init(std::string source, std::string options){
 }
 
 std::string FCS::buildOptions(physical_parameters physicalParameters,
-			      simulation_parameters simulationParameters){
+			      simulation_parameters simulationParameters
+#ifdef DEBUG
+			      ,debug_parameters debugParameters
+#endif
+			      ){
   string options = 
     " -D ENDTIME="+to_string(physicalParameters.endTime) + "f"+
     " -D DIFFUSIVITY="+to_string(physicalParameters.diffusivity) + "f"+
@@ -51,19 +55,30 @@ std::string FCS::buildOptions(physical_parameters physicalParameters,
     " -D PHOTONSPERINTENSITYPERTIME="+to_string(physicalParameters.photonsPerIntensityPerTime) +"f";
 
 #ifdef DEBUG
-  options += " -w -D DEBUG -D DEBUG_SIZE=" + to_string(simulationParameters.debugSize);
-  #endif
+  options += " -w -D DEBUG";
+  options += " -D DEBUG_SIZE=" + to_string(debugParameters.debugSize);
+  options += " -D PICKLE_SIZE=" + to_string(debugParameters.pickleSize);
+#endif
   
   return options;
 }
 
 FCS_out FCS::run(physical_parameters physicalParameters,
-		 simulation_parameters simulationParameters){
+		 simulation_parameters simulationParameters
+#ifdef DEBUG
+		 ,debug_parameters debugParameters
+#endif
+		 ){
   cl::Event kernelEvent;
   cl_int err;
 
   FCS::init(readFile("program.cl"),
-	    buildOptions(physicalParameters, simulationParameters));
+	    buildOptions(physicalParameters,
+			 simulationParameters
+#ifdef DEBUG
+			 ,debugParameters
+#endif
+			 ));
 
   // allocate global memory on gpu
   size_t globalBufferSize = simulationParameters.workgroups*\
@@ -81,7 +96,7 @@ FCS_out FCS::run(physical_parameters physicalParameters,
   #ifdef DEBUG
   // holds the pickled objects from gpu
   cl::Buffer debugBuffer = \
-    cl::Buffer(context, CL_MEM_READ_WRITE, simulationParameters.debugSize,
+    cl::Buffer(context, CL_MEM_READ_WRITE, debugParameters.debugSize,
 	       NULL, &err);
   assert(err == CL_SUCCESS);	
   #endif
@@ -125,9 +140,12 @@ FCS_out FCS::run(physical_parameters physicalParameters,
 			  globalBufferNumLongs*sizeof(cl_ulong), buffer);
   
   #ifdef DEBUG
-  char *debugString = (char *)malloc(simulationParameters.debugSize);
-  queue.enqueueReadBuffer(debugBuffer, CL_TRUE, 0,
-			  simulationParameters.debugSize, debugString);
+  cl_int pickleLen;
+  queue.enqueueReadBuffer(debugBuffer, CL_TRUE, 0, 4, &pickleLen);
+  printf("%d\n", pickleLen);
+  char *debugString = (char *)malloc(pickleLen);
+  queue.enqueueReadBuffer(debugBuffer, CL_TRUE, 4,
+			  pickleLen, debugString);
   #endif
 
   // wait for any transfers to finish
@@ -141,6 +159,6 @@ FCS_out FCS::run(physical_parameters physicalParameters,
   // debugString is unpicked in python caller
   return make_tuple(buffer, (uint)globalBufferNumLongs,
 		    kernelEnd-kernelBegin, debugString,
-		    simulationParameters.debugSize);
+		    pickleLen);
   #endif
 }

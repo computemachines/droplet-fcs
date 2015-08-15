@@ -11,18 +11,20 @@ extern "C" {
   static PyObject * fcs_fcs(PyObject *self, PyObject *args){
     physical_parameters physicalParameters;
     simulation_parameters simulationParameters;
+    debug_parameters debugParameters;
     physicalParameters.totalDroplets = 1;
     physicalParameters.endTime = 1.0;
-    physicalParameters.photonsPerIntensityPerTime = 1000.0;
+    physicalParameters.photonsPerIntensityPerTime = 100000.0;
     physicalParameters.diffusivity = 1.5;
     simulationParameters.workgroups = 1;
     simulationParameters.workitems = 1;
     simulationParameters.globalBufferSizePerWorkgroup = 100000;
     simulationParameters.localBufferSizePerWorkitem = 1000;
     simulationParameters.rngReserved = 1000;
-    simulationParameters.debugSize = 1000000;
+    debugParameters.debugSize = 1000000;
+    debugParameters.pickleSize = 100000;
 
-    PyArg_ParseTuple(args, "|ifffiiiiii",
+    PyArg_ParseTuple(args, "|ifffiiiiiii",
 		     &physicalParameters.totalDroplets,
 		     &physicalParameters.endTime,
 		     &physicalParameters.photonsPerIntensityPerTime,
@@ -32,10 +34,16 @@ extern "C" {
 		     &simulationParameters.globalBufferSizePerWorkgroup,
 		     &simulationParameters.localBufferSizePerWorkitem,
 		     &simulationParameters.rngReserved,
-		     &simulationParameters.debugSize);
+		     &debugParameters.debugSize,
+		     &debugParameters.pickleSize);
 
     FCS fcs;
-    FCS_out results = fcs.run(physicalParameters, simulationParameters);
+    FCS_out results = fcs.run(physicalParameters,
+			      simulationParameters
+#ifdef DEBUG
+			      ,debugParameters
+#endif
+			      );
 
     ulong *photons = get<0>(results);
     
