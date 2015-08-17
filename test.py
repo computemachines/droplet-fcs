@@ -9,10 +9,17 @@ import fcs
 
 out = fcs.fcs(1)
 
-fig = plt.figure(figsize=(13.66, 7.68), dpi=100)
-ax = fig.add_subplot(111, projection='3d')
-debug = loads(out[2])
-trajectory = debug[0]
+if type(out) == np.ndarray: # compiled with scons debug=0 (default)
+    pass # todo save to file or run through photon tools
+elif type(out) == tuple: # compiled with scons debug=1
+    if __name__ == "__main__":
+        fig = plt.figure(figsize=(13.66, 7.68), dpi=100)
+        ax = fig.add_subplot(111, projection='3d')
+        debug = loads(out[2])
+        trajectory = debug[0]
+else:
+    raise Exception("unexpected output")
+
 
 def plot(end=len(trajectory), spin=False):
     X, Y, Z = zip(*[value for (key, value) in sorted(trajectory.items())])

@@ -92,6 +92,10 @@ FCS_out FCS::run(physical_parameters physicalParameters,
     cl::Buffer(context, CL_MEM_READ_WRITE|CL_MEM_COPY_HOST_PTR,
 	       sizeof(cl_uint), &physicalParameters.totalDroplets, &err);
   assert(err == CL_SUCCESS);
+
+  cl::Buffer globalMutex = cl::Buffer(context, CL_MEM_READ_WRITE,
+				      sizeof(cl_uint), 0, &err);
+
   
   #ifdef DEBUG
   // holds the pickled objects from gpu
@@ -105,13 +109,18 @@ FCS_out FCS::run(physical_parameters physicalParameters,
   size_t localBufferSize = simulationParameters.workitems*\
     simulationParameters.localBufferSizePerWorkitem*sizeof(cl_ulong);
   cl::LocalSpaceArg localBuffer = cl::__local(localBufferSize);
+  cl::LocalSpaceArg localMutex = cl::__local(sizeof(cl_uint));
 
+  cl::Buffer numPhotons = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(cl_uint), 0, &err);
   // associate kernel arguments with buffers
   kernel.setArg(0, dropletsRemaining);
   kernel.setArg(1, globalBuffer);
-  kernel.setArg(2, localBuffer);
+  kernel.setArg(2, globalMutex);
+  kernel.setArg(3, localBuffer);
+  kernel.setArg(4, localMutex);
+  kernel.setArg(5, numPhotons);
 #ifdef DEBUG
-  kernel.setArg(3, debugBuffer);
+  kernel.setArg(6, debugBuffer);
 #endif
 
   // struct timespec start, stop;
@@ -153,11 +162,14 @@ FCS_out FCS::run(physical_parameters physicalParameters,
   char *debugString;
   vector<py_string> pyStrings;
   
-  for(int i = 0; pickleLen > 0; i ++){
+  for(int i = 0;
+      i*debugParameters.pickleSize > debugParameters.debugSize; i ++){
     queue.enqueueReadBuffer(debugBuffer, CL_TRUE, i*debugParameters.pickleSize,
 			    4, &pickleLen);
+    queue.finish();
+    printf("%d-th pickle len=%d\n", i, pickleLen);
     if(pickleLen == 0)
-      break;
+      continue;
     debugString = (char *)malloc(pickleLen);
     queue.enqueueReadBuffer(debugBuffer, CL_TRUE,
 			    4 + i*debugParameters.pickleSize,

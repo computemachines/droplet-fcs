@@ -304,14 +304,14 @@ void _post_to_pkl_(pkl_t *pkl_ptr, char c){
 }
 
 
-#define _post_multibyte_to_pkl_(D, C, N) \
-  for (int i=0; i < N; i++) { \
+#define _post_multibyte_to_pkl_(D, C, N)	\
+  for (int i=0; i < N; i++) {			\
     _post_to_pkl_(D, ((C >> 8*i) & 0xFF));	\
   }
 
-#define _post_reversed_multibyte_to_pkl_(D, C, N) \
-  for (int i=N-1; i>=0 ; i--) { \
-    (_post_to_pkl_(D, ((C >> 8*i) & 0xFF))); \
+#define _post_reversed_multibyte_to_pkl_(D, C, N)	\
+  for (int i=N-1; i>=0 ; i--) {				\
+    (_post_to_pkl_(D, ((C >> 8*i) & 0xFF)));		\
   }
 
 
@@ -321,10 +321,12 @@ void pkl_end(pkl_t *pkl_ptr){
   *(__global int *)(pkl_ptr->head) = pkl_ptr->pos - 4;
 }
 
+#ifdef PICKLE_SIZE
 // check remaining chars in pickle stream before overflow into next pickle
 int pkl_remaining(pkl_t *pkl_ptr){
   return PICKLE_SIZE - pkl_ptr->pos;
 }
+#endif
 
 // write char to pickle stream
 void pkl_log_char(pkl_t *pkl_ptr, char c){
@@ -394,25 +396,34 @@ void pkl_log_str(pkl_t *pkl_ptr, __constant char *s){
 
 __kernel void kernel_func(__global uint* dropletsRemaining,
 			  __global ulong* globalBuffer, //write only (thinking about mapping to host mem)
-			  __local ulong* localBuffer 
+			  __global uint* globalMutex,
+			  __local ulong* localBuffer,
+			  __local uint* localMutex,
+			  __global uint* photons
 #ifdef DEBUG
 			  , __global char* debug
 #endif
 			  ){
 #define PICKLE_INITIAL_START debug
-  int n = get_global_id(0);
+  int n = get_group_id(0);
   int m = get_local_id(0);
-  __global int *globalMutex;
-  __local int *localMutex;
-
   // on my integrated gpu globalBuffer usually isn't clean
-  for(int i = 0; i < GLOBALSIZE; i++){
-    globalBuffer[i] = 0;
-  }
+  /* if(LOCK(localMutex) == 0){ // run once per workgroup */
+  /*   for(int i = 0; i < GLOBALSIZE; i++){  */
+  /*     globalBuffer[i + n*GLOBALSIZE] = 0; */
+  /*   } */
+  /*   UNLOCK(localMutex); */
+  /* } // workitems seem to wait on siblings before completing if branch */
+  /* barrier(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE); */
+  
+  /* *(__global int *)debug = 10; */
   
 #ifdef DEBUG
-  pkl_t pkl_droplet = pkl_init(debug);
+  pkl_t pkl_droplet = pkl_init(debug + 2*get_global_id(0)*PICKLE_SIZE);
   pkl_open(&pkl_droplet); // LIST
+  pkl_t pkl_photons = pkl_init(debug + (2*get_global_id(0)+1)*PICKLE_SIZE);
+  pkl_open(&pkl_photons);
+  printf("%d\n", debug[0]);
 #endif
 
   // deterministic random number generator
@@ -441,41 +452,49 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
 	wrap(&position); 
 
 #ifdef DEBUG
-	if(pkl_remaining(&pkl_droplet) > 100){
-	  pkl_log_float(&pkl_droplet, T_j); // key
-	  pkl_open(&pkl_droplet); // value // TUPLE
-	  pkl_log_float(&pkl_droplet, position.x); 
-	  pkl_log_float(&pkl_droplet, position.y); 
-	  pkl_log_float(&pkl_droplet, position.z); 
-	  pkl_close(&pkl_droplet, TUPLE);
-	}
+	/* if(pkl_remaining(&pkl_droplet) > 100){ */
+	/*   pkl_log_float(&pkl_droplet, T_j); // key */
+	/*   pkl_open(&pkl_droplet); // value // TUPLE */
+	/*   pkl_log_float(&pkl_droplet, position.x);  */
+	/*   pkl_log_float(&pkl_droplet, position.y);  */
+	/*   pkl_log_float(&pkl_droplet, position.z);  */
+	/*   pkl_close(&pkl_droplet, TUPLE); */
+	/* } */
 #endif
       } // if(CDFphoton_i > CDFI_j)
       
       if(CDFphoton_i < CDFI_j + intensity*dT_j){
 	photon_i = (CDFphoton_i - CDFI_j)/intensity + T_j;
-	globalBuffer[localPhotonsPos] = (ulong)(photon_i*1e9);
-	localPhotonsPos ++;
+	/* globalBuffer[localPhotonsPos] = (ulong)(photon_i*1e9); */
+	/* localPhotonsPos ++; */
 	CDFphoton_i -= log(nextUfloat(&rng));
+#ifdef DEBUG
+	atom_inc(photons);
+	//	pkl_log_float(&pkl_photons, photon_i);
+#endif
       }else{
 	CDFI_j = CDFI_j + intensity*dT_j;
 	photon_i = T_j;
       } // if(CDFphoton_i < CDFI_j + intensity*dT_j)
-      
     }while(photon_i < ENDTIME);
 #ifdef DEBUG
     pkl_close(&pkl_droplet, DICT);
 #endif
   } // while(atomic_dec(dropletsRemaining)>0)
 
-  //this is a hack. for some reason localPhotonsPos=0 -> 0 droplets but
-  // localPhotonsPos=n -> (n-1) droplets for n>1
-  if(localPhotonsPos==0)
-    localPhotonsPos ++;
-  globalBuffer[0] = localPhotonsPos-1;
+  globalBuffer[0] = 0;
   
 #ifdef DEBUG
   pkl_close(&pkl_droplet, LIST);
   pkl_end(&pkl_droplet);
+  pkl_open(&pkl_photons);
+  pkl_log_str(&pkl_photons, "total photons");
+  pkl_log_int(&pkl_photons, *photons);
+  pkl_close(&pkl_photons, DICT);
+  pkl_close(&pkl_photons, LIST);
+  pkl_end(&pkl_photons);
 #endif
+
+  barrier(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE);
+  printf("%d.%d success\n", n, m);
 }

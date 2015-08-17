@@ -24,8 +24,8 @@ extern "C" {
     simulationParameters.globalBufferSizePerWorkgroup = 100000;
     simulationParameters.localBufferSizePerWorkitem = 1000;
     simulationParameters.rngReserved = 1000;
-    debugParameters.debugSize = 1000000;
-    debugParameters.pickleSize = 100000;
+    debugParameters.debugSize = 100000;
+    debugParameters.pickleSize = 5000;
 
     PyArg_ParseTuple(args, "|ifffiiiiiii",
 		     &physicalParameters.totalDroplets,
