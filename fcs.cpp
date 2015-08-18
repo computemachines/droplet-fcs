@@ -92,6 +92,10 @@ FCS_out FCS::run(physical_parameters physicalParameters,
     cl::Buffer(context, CL_MEM_READ_WRITE|CL_MEM_COPY_HOST_PTR,
 	       sizeof(cl_uint), &physicalParameters.totalDroplets, &err);
   assert(err == CL_SUCCESS);
+
+  cl::Buffer globalMutex = cl::Buffer(context, CL_MEM_READ_WRITE,
+				      sizeof(cl_uint), 0, &err);
+
   
   #ifdef DEBUG
   // holds the pickled objects from gpu
@@ -105,7 +109,9 @@ FCS_out FCS::run(physical_parameters physicalParameters,
   size_t localBufferSize = simulationParameters.workitems*\
     simulationParameters.localBufferSizePerWorkitem*sizeof(cl_ulong);
   cl::LocalSpaceArg localBuffer = cl::__local(localBufferSize);
+  cl::LocalSpaceArg localMutex = cl::__local(sizeof(cl_uint));
 
+  cl::Buffer numPhotons = cl::Buffer(context, CL_MEM_READ_WRITE, sizeof(cl_uint), 0, &err);
   // associate kernel arguments with buffers
   kernel.setArg(0, dropletsRemaining);
   kernel.setArg(1, globalBuffer);
