@@ -415,6 +415,8 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
 #ifdef DEBUG
   pkl_t pkl_droplet = pkl_init(debug);
   pkl_open(&pkl_droplet); // LIST
+  pkl_t pkl_photon = pkl_init(debug + PICKLE_SIZE);
+  pkl_open(&pkl_photon);
 #endif
 
   // deterministic random number generator
@@ -443,7 +445,7 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
 	wrap(&position); 
 
 #ifdef DEBUG
-	if(pkl_remaining(&pkl_droplet) > 100){
+	if(pkl_droplet.pos < 100){
 	  pkl_log_float(&pkl_droplet, T_j); // key
 	  pkl_open(&pkl_droplet); // value // TUPLE
 	  pkl_log_float(&pkl_droplet, position.x); 
@@ -478,6 +480,8 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
   
 #ifdef DEBUG
   pkl_close(&pkl_droplet, LIST);
+  pkl_close(&pkl_photon, LIST);
   pkl_end(&pkl_droplet);
+  pkl_end(&pkl_photon);
 #endif
 }

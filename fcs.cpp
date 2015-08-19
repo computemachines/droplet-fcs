@@ -159,16 +159,17 @@ FCS_out FCS::run(physical_parameters physicalParameters,
   char *debugString;
   vector<py_string> pyStrings;
   
-  for(int i = 0; pickleLen > 0; i ++){
+  for(int i = 0;
+      i*debugParameters.pickleSize < debugParameters.debugSize; i ++){
     queue.enqueueReadBuffer(debugBuffer, CL_TRUE, i*debugParameters.pickleSize,
 			    4, &pickleLen);
+    queue.finish();
     if(pickleLen == 0)
-      break;
+      continue;
     debugString = (char *)malloc(pickleLen);
     queue.enqueueReadBuffer(debugBuffer, CL_TRUE,
 			    4 + i*debugParameters.pickleSize,
 			    pickleLen, debugString);
-    printf("pickle len: %d\n", pickleLen);
     pyStrings.push_back(make_tuple(debugString, pickleLen));
   }
   
