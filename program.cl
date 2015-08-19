@@ -304,14 +304,14 @@ void _post_to_pkl_(pkl_t *pkl_ptr, char c){
 }
 
 
-#define _post_multibyte_to_pkl_(D, C, N) \
-  for (int i=0; i < N; i++) { \
+#define _post_multibyte_to_pkl_(D, C, N)	\
+  for (int i=0; i < N; i++) {			\
     _post_to_pkl_(D, ((C >> 8*i) & 0xFF));	\
   }
 
-#define _post_reversed_multibyte_to_pkl_(D, C, N) \
-  for (int i=N-1; i>=0 ; i--) { \
-    (_post_to_pkl_(D, ((C >> 8*i) & 0xFF))); \
+#define _post_reversed_multibyte_to_pkl_(D, C, N)	\
+  for (int i=N-1; i>=0 ; i--) {				\
+    (_post_to_pkl_(D, ((C >> 8*i) & 0xFF)));		\
   }
 
 
@@ -321,10 +321,12 @@ void pkl_end(pkl_t *pkl_ptr){
   *(__global int *)(pkl_ptr->head) = pkl_ptr->pos - 4;
 }
 
+#ifdef PICKLE_SIZE
 // check remaining chars in pickle stream before overflow into next pickle
 int pkl_remaining(pkl_t *pkl_ptr){
   return PICKLE_SIZE - pkl_ptr->pos;
 }
+#endif
 
 // write char to pickle stream
 void pkl_log_char(pkl_t *pkl_ptr, char c){
