@@ -396,27 +396,33 @@ void pkl_log_str(pkl_t *pkl_ptr, __constant char *s){
 
 __kernel void kernel_func(__global uint* dropletsRemaining,
 			  __global ulong* globalBuffer, //write only (thinking about mapping to host mem)
-			  __local ulong* localBuffer 
+			  __global uint* globalMutex,
+			  __local ulong* localBuffer,
+			  __local uint* localMutex,
+			  __global uint* photons
 #ifdef DEBUG
 			  , __global char* debug
 #endif
 			  ){
 #define PICKLE_INITIAL_START debug
-  int n = get_global_id(0);
+  int n = get_group_id(0);
   int m = get_local_id(0);
-  __global int *globalMutex;
-  __local int *localMutex;
-
+  UNLOCK(localMutex);
+  UNLOCK(globalMutex);
   // on my integrated gpu globalBuffer usually isn't clean
-  for(int i = 0; i < GLOBALSIZE; i++){
-    globalBuffer[i] = 0;
-  }
+  if(LOCK(localMutex) == 0){ // run once per workgroup
+    for(int i = 0; i < GLOBALSIZE; i++){
+      globalBuffer[i + n*GLOBALSIZE] = 0;
+    }
+    UNLOCK(localMutex);
+  } // workitems seem to wait on siblings before completing if branch
+  barrier(CLK_GLOBAL_MEM_FENCE | CLK_LOCAL_MEM_FENCE);
   
 #ifdef DEBUG
-  pkl_t pkl_droplet = pkl_init(debug);
+  pkl_t pkl_droplet = pkl_init(debug + (2*get_global_id(0))*PICKLE_SIZE);
   pkl_open(&pkl_droplet); // LIST
-  pkl_t pkl_photon = pkl_init(debug + PICKLE_SIZE);
-  pkl_open(&pkl_photon);
+  pkl_t pkl_photons = pkl_init(debug + (2*get_global_id(0)+1)*PICKLE_SIZE);
+  pkl_open(&pkl_photons);
 #endif
 
   // deterministic random number generator
@@ -425,7 +431,8 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
 
   __local uint localPhotonsPos;
 
-  while(atomic_dec(dropletsRemaining)>0){
+  __private uint dropletId;
+  while((dropletId = atomic_dec(dropletsRemaining))>0){
     float3 position = (float3)(0); //nextUfloat3(&rng);
     float intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
     float T_j = 0, dT_j = timestep(max_sigma(position));
@@ -435,53 +442,42 @@ __kernel void kernel_func(__global uint* dropletsRemaining,
     pkl_open(&pkl_droplet); // DICT
 #endif
     do{
+      // if photon(i) generated beyond current step(j) then step droplet(j)
       if(CDFphoton_i > CDFI_j){
 	T_j += dT_j;
 	CDFI_j += intensity*dT_j;
-	
+
 	dT_j = timestep(max_sigma(position));
 	position += sigma(dT_j)*nextGfloat3(&rng);
 	intensity = PHOTONSPERINTENSITYPERTIME*detectionIntensity(position);
-	wrap(&position); 
-
-#ifdef DEBUG
-	if(pkl_droplet.pos < 100){
-	  pkl_log_float(&pkl_droplet, T_j); // key
-	  pkl_open(&pkl_droplet); // value // TUPLE
-	  pkl_log_float(&pkl_droplet, position.x); 
-	  pkl_log_float(&pkl_droplet, position.y); 
-	  pkl_log_float(&pkl_droplet, position.z); 
-	  pkl_close(&pkl_droplet, TUPLE);
-	}
-#endif
-      } // if(CDFphoton_i > CDFI_j)
-      
-      if(CDFphoton_i < CDFI_j + intensity*dT_j){
+	wrap(&position);
+      }
+      // if photon(i) generated is before next step(j) then compute arrival time
+      if(CDFphoton_i < CDFI_j + intensity*dT_j){ 
 	photon_i = (CDFphoton_i - CDFI_j)/intensity + T_j;
+	while(LOCK(globalMutex)); // wait until get lock
 	globalBuffer[localPhotonsPos] = (ulong)(photon_i*1e9);
 	localPhotonsPos ++;
+	UNLOCK(globalMutex);
 	CDFphoton_i -= log(nextUfloat(&rng));
-      }else{
+      }else{ // photon generated is not during this step
 	CDFI_j = CDFI_j + intensity*dT_j;
-	photon_i = T_j;
       } // if(CDFphoton_i < CDFI_j + intensity*dT_j)
       
-    }while(photon_i < ENDTIME);
+    }while(photon_i < ENDTIME && T_j < ENDTIME);
 #ifdef DEBUG
     pkl_close(&pkl_droplet, DICT);
-#endif
-  } // while(atomic_dec(dropletsRemaining)>0)
+#endif 
+  } // while(atomic_dec(dropletsRemaining)>0) 
 
-  //this is a hack. for some reason localPhotonsPos=0 -> 0 droplets but
-  // localPhotonsPos=n -> (n-1) droplets for n>1
-  if(localPhotonsPos==0)
-    localPhotonsPos ++;
-  globalBuffer[0] = localPhotonsPos-1;
+  barrier(CLK_GLOBAL_MEM_FENCE);
+  if(LOCK(globalMutex)==0)
+    globalBuffer[0] = localPhotonsPos;
   
 #ifdef DEBUG
   pkl_close(&pkl_droplet, LIST);
-  pkl_close(&pkl_photon, LIST);
+  pkl_close(&pkl_photons, LIST);
   pkl_end(&pkl_droplet);
-  pkl_end(&pkl_photon);
+  pkl_end(&pkl_photons);
 #endif
 }

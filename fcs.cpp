@@ -115,9 +115,12 @@ FCS_out FCS::run(physical_parameters physicalParameters,
   // associate kernel arguments with buffers
   kernel.setArg(0, dropletsRemaining);
   kernel.setArg(1, globalBuffer);
-  kernel.setArg(2, localBuffer);
+  kernel.setArg(2, globalMutex);
+  kernel.setArg(3, localBuffer);
+  kernel.setArg(4, localMutex);
+  kernel.setArg(5, numPhotons);
 #ifdef DEBUG
-  kernel.setArg(3, debugBuffer);
+  kernel.setArg(6, debugBuffer);
 #endif
 
   // struct timespec start, stop;
