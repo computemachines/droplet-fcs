@@ -126,11 +126,12 @@ FCS_out FCS::run(physical_parameters physicalParameters,
   // struct timespec start, stop;
   // clock_gettime(CLOCK_REALTIME, &start);
 
-  queue.enqueueNDRangeKernel(kernel, cl::NDRange(0),
-			     cl::NDRange(simulationParameters.workgroups*\
-					 simulationParameters.workitems),
-			     cl::NDRange(simulationParameters.workitems), NULL,
-			     &kernelEvent);
+  int ret = queue.enqueueNDRangeKernel(kernel, cl::NDRange(0),
+				       cl::NDRange(simulationParameters.workgroups* \
+						   simulationParameters.workitems),
+				       cl::NDRange(simulationParameters.workitems), NULL,
+				       &kernelEvent);
+  assert(ret == CL_SUCCESS);
   kernelEvent.wait();
 
   // get profiling times
