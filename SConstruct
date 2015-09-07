@@ -24,3 +24,4 @@ env.Append(LIBS=['OpenCL'])
 
 env.SharedLibrary(target="fcsmodule", source=["fcsmodule.cpp", "simulation.cpp"], SHLIBPREFIX='')
 
+env.Program(target="test/run_tests", source=["test/run_tests.cpp"])
