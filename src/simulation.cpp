@@ -10,13 +10,13 @@
 
 using namespace std;
 
-void Simulation::init(string source, string options){
+void Simulation::init(string source, string options) {
   if(initialized)
     return;
   initialized = true;
 
   cl_int err;
-  std::vector<cl::Device> devices;
+  vector<cl::Device> devices;
 
   platform = cl::Platform::get();
   platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);

@@ -38,6 +38,8 @@ struct debug_parameters {
   uint pickleSize;
 };
 
+const std::string readFile(const std::string& filename);
+
 // Executes a single fcs simulation with parameters
 class FCS : public Simulation{
 public:

@@ -20,11 +20,6 @@
 
 #include "simulation.hpp"
 
-// This is supposed to silence a compiler warning, but I don't think
-// it is working
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-
-
 using namespace std;
 
 // TODO: move to utility library
@@ -72,7 +67,7 @@ FCS_out FCS::run(physical_parameters physicalParameters,
   cl::Event kernelEvent;
   cl_int err;
 
-  FCS::init(readFile("program.cl"),
+  FCS::init(readFile("res/program.cl"),
 	    buildOptions(physicalParameters,
 			 simulationParameters
 #ifdef DEBUG

@@ -1,13 +1,14 @@
 // fcsmodule.cpp
 
-#include "Python.h"
+#include "Python.h" // must be included first
 #include <tuple>
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 
-#include "fcs.cpp"
-#include "simulation.hpp"
+#include "fcs.hpp"
+
+using namespace std;
 
 extern "C" {
   static PyObject * fcs_fcs(PyObject *self, PyObject *args){
@@ -69,7 +70,6 @@ extern "C" {
       PyObject *s = Py_BuildValue("s#", get<0>(stringData), get<1>(stringData));
       PyTuple_SetItem(ret, i+2, s);
     }
-    Py_INCREF(ret);
     return ret;
     #endif
   }
@@ -79,11 +79,20 @@ extern "C" {
     {NULL, NULL, 0, NULL} // sentinel
   };
 
-  PyMODINIT_FUNC initfcs(void){
-    PyObject *m = Py_InitModule("fcs", FCSMethods);
+  static struct PyModuleDef FCSModule = {
+    PyModuleDef_HEAD_INIT,
+    "fcs",
+    NULL,
+    -1,
+    FCSMethods
+  };
+
+  PyObject* PyInit_fcs(){
+    PyObject *m = PyModule_Create(&FCSModule);
     // PyModule_AddIntConstant(m, "NO_PROFILING", NO_PROFILING);
     // PyModule_AddIntConstant(m, "WITH_PROFILING", WITH_PROFILING);
     // PyModule_AddIntConstant(m, "PROFILING_ONLY", PROFILING_ONLY);
     import_array();
+    return m;
   }
 }

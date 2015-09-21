@@ -1,8 +1,33 @@
-compile with scons
+This is a c++ library with api visible from c++ or python3.4
 
-$ scons debug=1
+The directory structure
+.
+|-- README
+|-- SConstruct     // build file (uses scons)
+|-- build
+|-- docs
+|-- fcs            // python code
+|-- include        // header files used by droplet-fcs
+|-- libs           // shared/static libraries used
+|-- res            // opencl kernels
+|-- src            // c++ code
+`-- test           // googletest unittests
 
-use fcsmodule.so from python
+build dependencies (ubuntu packages)
+python3.4-dev
+python3-numpy-dev
 
+opencl headers and libraries
+
+build with
+$ git submodule init
+$ git submodule update
+$ make all
+
+to use from python
+$ cd build
+$ python
 >> from fcs import fcs
->> out = fcs()
+>> fcs.fcs()
+
+`import fcs` from python looks for fcs.so in the current directory
