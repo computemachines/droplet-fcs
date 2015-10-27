@@ -39,8 +39,8 @@ all: build_target test_target
 	cp -v ./googletest/googletest/make/libgtest.a ./libs/libgtest.a
 
 # ----------------
-./test/run_tests: ./test/run_tests.o ./test/kerneltest.o ./src/fcs.o ./src/simulation.o ./libs/libgtest.a
-	$(CXX) $(LDFLAGS_TEST) ./test/run_tests.o ./test/kerneltest.o ./src/fcs.o ./src/simulation.o $(LDLIBS_TEST) -o ./test/run_tests
+./test/run_tests: ./test/run_tests.o ./test/kerneltest.o ./test/simulationtest.o ./test/allocatebuffertest.o ./src/fcs.o ./src/simulation.o ./libs/libgtest.a
+	$(CXX) $(LDFLAGS_TEST) ./test/run_tests.o ./test/kerneltest.o ./test/allocatebuffertest.o ./test/simulationtest.o ./src/fcs.o ./src/simulation.o $(LDLIBS_TEST) -o ./test/run_tests
 
 ./build:
 	mkdir build

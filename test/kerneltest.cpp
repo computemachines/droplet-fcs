@@ -38,11 +38,11 @@ namespace {
     }
   };
 
-  TEST_F(KernelTest, PositivePhotons) {
+  TEST_F(KernelTest, PhotonsTimesPositiveDefinite) {
     FCS_out output = run();
     EXPECT_LE(0, std::get<0>(output)[0]);
   }
-  TEST_F(KernelTest, PositivePhotonTimes) {
+  TEST_F(KernelTest, PhotonTimesMonotonicallyIncreasing) {
     FCS_out output = run();
     int num_photons = std::get<1>(output);
     ASSERT_LT(1, num_photons);
