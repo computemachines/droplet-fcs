@@ -7,7 +7,7 @@
 
 class Simulation{
   bool initialized = false;
-protected:
+public:
   cl::Platform platform;
   cl::Context context;
   cl::Program program;

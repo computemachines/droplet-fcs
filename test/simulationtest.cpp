@@ -24,7 +24,7 @@ namespace {
       simulation.init(readFile("./test/res/identity_null.cl"), "");
     }
   };
-  TEST_F(SimulationTest, buffersExist) {
-
-  }
+  // TEST_F(SimulationTest, KernelExists) {
+  //   ASSERT_NE(simulation.kernel, NULL);
+  // }
 }
