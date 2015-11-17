@@ -16,7 +16,7 @@
 typedef unsigned int uint32_t;
 typedef unsigned long uint64_t;
 
-// import random.cl
+// import _random_.cl
 
 float timestep(float sigma){
   return pown(sigma, 2) / (6*DIFFUSIVITY);
@@ -40,7 +40,7 @@ void wrap(float3 *position){ // +- 1 maps to +- 10um
 }
 
 
-// import pickle.cl
+// import _pickle_.cl
 
 __kernel void kernel_func(__global uint* dropletsRemaining,
 			  __global ulong* globalBuffer, //write only (thinking about mapping to host mem)
