@@ -1,0 +1,22 @@
+
+
+* tests summary
+
+
+
+* multidroplets (n,m)
+** kernel
+   file:res/program.cl::397
+
+   | index (unused) | args              | buffer type                            |
+   |----------------+-------------------+----------------------------------------|
+   | (0)            | dropletsRemaining | CL_MEM_READ_WRITE,CL_MEM_COPY_HOST_PTR |
+   | 1              | globalBuffer      | CL_MEM_READ_WRITE                      |
+   | (2)            | globalMutex       | CL_MEM_READ_WRITE                      |
+   | (3)            | localBuffer       | (_local_) ?                            |
+   | (4)            | localMutex        | (_local_) ?                            |
+   | (5)            | numPhotons        | CL_MEM_READ_WRITE                      |
+
+* single droplet fixed (1,1)
+** kernel
+   file:res/single.cl
