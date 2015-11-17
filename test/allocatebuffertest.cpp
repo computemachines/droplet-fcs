@@ -5,6 +5,7 @@
 #include "simulation.hpp"
 #include "fcs.hpp" // for readFile
 
+
 namespace {
   class AllocateBufferTest : public ::testing::Test {
   public:
@@ -21,7 +22,7 @@ namespace {
     ASSERT_EQ(err, CL_SUCCESS);
   }
   TEST_F(AllocateBufferTest, LocalRW) {
-    cl::__local(sizeof(cl::cl_int));
+    cl::__local(sizeof(cl_int));
   }
   
     
