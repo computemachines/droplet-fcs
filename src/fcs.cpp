@@ -19,19 +19,11 @@
 #include "Python.h"
 
 #include "simulation.hpp"
+#include "util.hpp"
 
 using namespace std;
 
-// TODO: move to utility library
-const string readFile(const string& filename){
-  ifstream sourcefile(filename);
-  const string source((istreambuf_iterator<char>(sourcefile)),
-		istreambuf_iterator<char>());
-
-  return source;
-}
-
-void FCS::init(std::string source, std::string options){
+void FCS::init(const string source, string options){
   Simulation::init(source, options);
 }
 
@@ -67,7 +59,7 @@ FCS_out FCS::run(physical_parameters physicalParameters,
   cl::Event kernelEvent;
   cl_int err;
 
-  FCS::init(readFile("res/program.cl"),
+  FCS::init(readfile("res/_generated/program.cl"),
 	    buildOptions(physicalParameters,
 			 simulationParameters
 #ifdef DEBUG

@@ -3,7 +3,7 @@
 #include "CL/cl.hpp"
 
 #include "simulation.hpp"
-#include "fcs.hpp" // for readFile
+#include "util.hpp"
 
 
 namespace {
@@ -13,7 +13,7 @@ namespace {
     int err;
     
     AllocateBufferTest(){
-      simulation.init(readFile("./test/res/identity_null.cl"), "");
+      simulation.init(readfile("./test/res/identity_null.cl"), "");
     }
   };
 

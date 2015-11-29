@@ -13,8 +13,7 @@ public:
   cl::Program program;
   cl::CommandQueue queue;
   cl::Kernel kernel;
-public:
-  void init(std::string source, std::string options);
+  void init(const std::string source, std::string options);
 };
 
 

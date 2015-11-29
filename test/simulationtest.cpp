@@ -7,6 +7,7 @@
 
 #include "simulation.hpp"
 #include "fcs.hpp"
+#include "util.hpp"
 
 // const std::string readFile(const std::string& filename){
 //   std::ifstream sourcefile(filename);
@@ -21,7 +22,7 @@ namespace {
   protected:
     Simulation simulation;
     SimulationTest(){
-      simulation.init(readFile("./test/res/identity_null.cl"), "");
+      simulation.init(readfile("./test/res/identity_null.cl"), "");
     }
   };
   // TEST_F(SimulationTest, KernelExists) {

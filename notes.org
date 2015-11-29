@@ -1,4 +1,12 @@
 
+write generator for opencl source
+  python docopt
+
+  find // import * statements
+  replace with file contents surrounded by // import * \n // end import *
+
+
+
 
 * tests summary
 
@@ -6,7 +14,7 @@
 
 * multidroplets (n,m)
 ** kernel
-   file:res/program.cl::397
+   file:res/program.cl
 
    | index (unused) | args              | buffer type                            |
    |----------------+-------------------+----------------------------------------|
@@ -20,3 +28,11 @@
 * single droplet fixed (1,1)
 ** kernel
    file:res/single.cl
+
+   | index | args    | buffer type       | buffer size |
+   |-------+---------+-------------------+-------------|
+   |     0 | photons | CL_MEM_READ_WRITE | 100 uint    |
+
+** host
+   file:src/single.cpp
+

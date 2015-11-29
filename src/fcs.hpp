@@ -8,6 +8,7 @@
 #include "CL/cl.hpp"
 
 #include "simulation.hpp"
+#include "util.hpp"
 
 #ifndef DEBUG
 typedef std::tuple<ulong *, int> FCS_out;
@@ -38,8 +39,6 @@ struct debug_parameters {
   uint pickleSize;
 };
 
-const std::string readFile(const std::string& filename);
-
 // Executes a single fcs simulation with parameters
 class FCS : public Simulation{
 public:
@@ -50,7 +49,7 @@ public:
 #endif
 	      );
 private:
-  void init(std::string source, std::string options);
+  void init(const std::string source, std::string options);
   std::string buildOptions(physical_parameters physicalParameters,
 			   simulation_parameters simulationParameters
 #ifdef DEBUG

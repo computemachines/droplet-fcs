@@ -10,7 +10,7 @@
 
 using namespace std;
 
-void Simulation::init(string source, string options) {
+void Simulation::init(const string source, string options) {
   if(initialized)
     return;
   initialized = true;
