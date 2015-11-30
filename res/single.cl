@@ -18,11 +18,16 @@ __kernel void kernel_func(__global ulong* photons){
   MWC64X_SeedStreams(&rng, 100340, 10000);
 
   float3 position = (float3)(0);
-  float intensity = 1.0;
+  float intensity = 0.001;
   float CDFI_j = 0;
   float CDFphoton_i = -log(nextUfloat(&rng));
-  for(int i=0; i < 10; i ++){
+  photons[0] = CDFphoton_i/intensity;
+  CDFphoton_i -= log(nextUfloat(&rng));
+  for(int i=1; i < 1000000; i ++){
     photons[i] = CDFphoton_i/intensity;
+    if(photons[i] <= photons[i-1]){
+      photons[i] = photons[i-1]+1;
+    }
     CDFphoton_i -= log(nextUfloat(&rng));
   }
   photons[0] = 1;

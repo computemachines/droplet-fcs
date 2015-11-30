@@ -5,4 +5,7 @@
 
 const std::string readfile(const std::string& filename);
 
+
+void savearray(unsigned long *data, int n, const char* filename);
+
 #endif

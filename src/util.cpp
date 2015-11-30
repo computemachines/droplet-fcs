@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdio>
+#include <tuple>
 
 using namespace std;
 
@@ -12,4 +13,11 @@ const string readfile(const string& filename){
 		istreambuf_iterator<char>());
 
   return source;
+}
+
+void savearray(unsigned long *data, int n, const char* filename){
+  FILE *file;
+  file = fopen(filename, "wb");
+  fwrite(data, sizeof(unsigned long), n, file);
+  fclose(file);
 }
