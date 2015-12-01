@@ -58,7 +58,9 @@ clean: clean_target
 test_target: build_target ./test/run_tests
 	DISPLAY=:0 ./test/run_tests
 
-resources: ./res/_generated/single.cl ./res/_generated/program.cl
+./res/_generated:
+	mkdir ./res/_generated
+resources: ./res/_generated ./res/_generated/single.cl ./res/_generated/program.cl 
 
 build_target: ./build/fcs.so resources
 
